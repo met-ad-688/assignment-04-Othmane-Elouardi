@@ -329,7 +329,7 @@ else:
 ```
 ## ✏️ Explanation
 
-The trend line reveals noticeable fluctuations in job posting activity, indicating that hiring demand changes frequently over time. Peaks suggest periods of intensified recruitment—possibly driven by seasonal hiring cycles or new project launches—while the dips represent slower hiring phases.
+The trend line reveals noticeable fluctuations in job posting activity, indicating that hiring demand changes frequently over time. Peaks suggest periods of intensified recruitment, possibly driven by seasonal hiring cycles or new project launches, while the dips represent slower hiring phases.
 Overall, the data highlights a dynamic job market with recurring surges in posting volume.
 
 
@@ -338,13 +338,49 @@ Overall, the data highlights a dynamic job market with recurring surges in posti
 
 ```{python}
 
+#| label: top-job-titles
+#| echo: true
+#| message: false
+#| warning: false
 
+import pandas as pd
+import plotly.express as px
+
+if "TITLE_NAME" in df.columns:
+    # Count occurrences and select top 10
+    top_jobs = df["TITLE_NAME"].value_counts().nlargest(10)
+
+    # Create bar chart
+    fig = px.bar(
+        x=top_jobs.index,
+        y=top_jobs.values,
+        title="Top 10 Job Titles by Count",
+        text_auto=True,
+        color=top_jobs.values,
+        color_continuous_scale="tealgrn",
+        template="plotly_dark"
+    )
+
+    fig.update_layout(
+        xaxis_title="Job Title",
+        yaxis_title="Number of Postings",
+        font=dict(family="Inter", size=13),
+        title_font=dict(size=20, family="Inter", color="#1f6feb"),
+        xaxis_tickangle=40,
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        margin=dict(t=60, l=60, r=40, b=100)
+    )
+
+    fig.show()
+else:
+    print("❌ 'TITLE_NAME' column not found in dataset.")
 
 
 
 ```
-
-
+## ✏️ Explanation
+The chart shows that Data Analyst is by far the most frequently posted job title, indicating a high market demand for data-focused professionals. Other roles like Unclassified, Enterprise Architect, and Data Engineer also appear prominently, reflecting the growing need for both analytical and technical expertise in data-driven organizations.
 
 # Remote vs On-Site Job Postings
 
