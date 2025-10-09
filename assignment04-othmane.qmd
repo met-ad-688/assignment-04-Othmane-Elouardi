@@ -279,12 +279,58 @@ Meanwhile, industries like Administrative Support and Retail Trade tend to offer
 
 ```{python}
 
+#| label: job-posting-trends
+#| echo: true
+#| message: false
+#| warning: false
+
+import pandas as pd
+import plotly.express as px
+
+# Ensure date column exists and is parsed
+if "POSTED" in df.columns:
+    df["POSTED_DATE"] = pd.to_datetime(df["POSTED"], errors="coerce")
+
+    # Aggregate daily counts
+    trend = (df.dropna(subset=["POSTED_DATE"])
+               .groupby("POSTED_DATE")
+               .size()
+               .reset_index(name="Job_Postings"))
+
+    # Create line chart
+    fig = px.line(
+        trend,
+        x="POSTED_DATE",
+        y="Job_Postings",
+        title="Job Posting Trends Over Time",
+        template="plotly_dark",
+        color_discrete_sequence=["#37f3c0"]
+    )
+
+    fig.update_layout(
+        xaxis_title="Posted Date",
+        yaxis_title="Number of Job Postings",
+        font=dict(family="Inter", size=13),
+        title_font=dict(size=20, family="Inter", color="#1f6feb"),
+        hovermode="x unified",
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        margin=dict(t=60, l=60, r=40, b=80),
+    )
+
+    fig.update_traces(line=dict(width=2.5))
+    fig.show()
+else:
+    print("❌ 'POSTED' column not found.")
 
 
 
 
 ```
+## ✏️ Explanation
 
+The trend line reveals noticeable fluctuations in job posting activity, indicating that hiring demand changes frequently over time. Peaks suggest periods of intensified recruitment—possibly driven by seasonal hiring cycles or new project launches—while the dips represent slower hiring phases.
+Overall, the data highlights a dynamic job market with recurring surges in posting volume.
 
 
 # Top 10 Job Titles by Count
