@@ -1,24 +1,59 @@
 ---
-title: Assignment 04
+title: "Assignment 04 — Lightcast Job Market Analysis"
 author:
-  - name: Othmane Elouardi
+  - name: "Othmane Elouardi"
     affiliations:
       - id: bu
-        name: Boston University
-        city: Boston
-        state: MA
+        name: "Boston University"
+        city: "Boston"
+        state: "MA"
+date: 2025-10-08
 number-sections: true
-date: '2024-11-21'
-date-modified: today
-date-format: long
 format:
   html:
-    theme: cerulean
+    theme:
+      light: lux
+      dark: slate
     toc: true
-    toc-depth: 2
-
+    toc-depth: 3
+    toc-location: right
+    smooth-scroll: true
+    code-fold: true
+    code-tools: true
+    code-line-numbers: true
+    highlight-style: a11y
+    page-layout: article
+    css: styles.css
+    grid:
+      body-width: 900px     
+      margin-width: 280px   
 execute:
-  echo: false
-  eval: false
+  echo: true
+  warning: false
+  error: false
   freeze: auto
+jupyter: env
 ---
+
+# Introduction
+
+This report analyzes job postings from the **Lightcast Job Market dataset**, exploring salary trends, employment types, skill demand, and more.  
+All visualizations are interactive, allowing you to hover and explore insights dynamically.
+
+---
+
+# Load the Dataset
+
+```{python}
+import pandas as pd
+import plotly.express as px
+from plotly import graph_objects as go
+from pathlib import Path
+
+csv_path = Path("data/lightcast_job_postings.csv")
+df = pd.read_csv(csv_path, low_memory=False)
+
+print("✅ Dataset loaded successfully!")
+print(f"Rows: {len(df)}, Columns: {len(df.columns)}")
+df.head(3)
+```
