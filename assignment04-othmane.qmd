@@ -533,12 +533,141 @@ Across most industries, soft skills like communication and problem-solving appea
 
 ```{python}
 
+# --- Salary Analysis by Occupation (Bubble Chart) - robust ---
 
+import pandas as pd
+import numpy as np
+import plotly.express as px
+from pathlib import Path
 
+# Load once if df isn't already present
+if "df" not in globals():
+    df = pd.read_csv(Path("data/lightcast_job_postings.csv"), low_memory=False)
+
+work = df.copy()
+
+# ---------- Salary normalization (annualize) ----------
+# Make numeric
+for c in ["SALARY_FROM", "SALARY_TO", "SALARY"]:
+    if c in work.columns:
+        work[c] = pd.to_numeric(work[c], errors="coerce")
+
+# Helper: annualize by period
+def annualize(row):
+    # prefer bounds if present, else SALARY
+    base = np.nan
+    if pd.notna(row.get("SALARY_FROM")) and pd.notna(row.get("SALARY_TO")):
+        base = 0.5 * (row["SALARY_FROM"] + row["SALARY_TO"])
+    elif pd.notna(row.get("SALARY_FROM")):
+        base = row["SALARY_FROM"]
+    elif pd.notna(row.get("SALARY_TO")):
+        base = row["SALARY_TO"]
+    elif pd.notna(row.get("SALARY")):
+        base = row["SALARY"]
+
+    if pd.isna(base):
+        return np.nan
+
+    period = str(row.get("ORIGINAL_PAY_PERIOD", "")).strip().upper()
+    if period == "HOUR":
+        return base * 2080            # 40h * 52w
+    elif period == "DAY":
+        return base * 260             # 5d * 52w
+    elif period == "WEEK":
+        return base * 52
+    elif period == "MONTH":
+        return base * 12
+    # assume already annual
+    return base
+
+# Compute annual salary
+work["SALARY_ANNUAL"] = work.apply(annualize, axis=1)
+
+# Keep a wide annual band to avoid clipping true values
+work = work[work["SALARY_ANNUAL"].between(15000, 500000, inclusive="both")]
+
+# ---------- Pick a grouping column that has variety among salary rows ----------
+candidates = [
+    "SOC_2021_4_NAME", "SOC_2021_3_NAME", "SOC_2021_2_NAME",
+    "ONET_2019_NAME", "ONET_NAME",
+    "TITLE_NAME"  # final fallback if none of the above has variety
+]
+
+def pick_group_col(frame, cols, min_unique=6):
+    avail = []
+    for c in cols:
+        if c in frame.columns:
+            n = frame[c].dropna().nunique()
+            avail.append((c, n))
+    # sort by original order but filter by variety
+    for c, n in avail:
+        if n >= min_unique:
+            return c, avail
+    # otherwise take the one with max variety among the available
+    if avail:
+        return max(avail, key=lambda x: x[1])[0], avail
+    return None, []
+
+group_col, availability = pick_group_col(work.dropna(subset=["SALARY_ANNUAL"]), candidates)
+
+print("Grouping candidates (non-null uniques among rows with salary):")
+for c, n in availability:
+    print(f"  - {c}: {n}")
+
+if not group_col:
+    print("❌ No suitable occupation/title column found.")
+else:
+    print(f"✅ Using group column: {group_col}")
+
+    # ---------- Aggregate ----------
+    salary_df = (
+        work.dropna(subset=[group_col, "SALARY_ANNUAL"])
+            .groupby(group_col, as_index=False)
+            .agg(
+                Median_Salary=("SALARY_ANNUAL", "median"),
+                Job_Postings=(group_col, "size")
+            )
+            .sort_values("Job_Postings", ascending=False)
+    )
+
+    # If there are still tons of unique groups, keep the busiest N
+    top_n = 20
+    if len(salary_df) > top_n:
+        salary_df = salary_df.head(top_n)
+
+    # If everything collapsed to 1, show a short sample so you can sanity check
+    if salary_df[group_col].nunique() <= 1:
+        print("ℹ️ Still only one group after cleaning. Here are the top 10 rows with salary:")
+        print(work.loc[work["SALARY_ANNUAL"].notna(), [group_col, "TITLE_NAME", "SALARY_ANNUAL", "ORIGINAL_PAY_PERIOD"]].head(10))
+
+    # ---------- Plot ----------
+    fig = px.scatter(
+        salary_df,
+        x=group_col,
+        y="Median_Salary",
+        size="Job_Postings",
+        color="Median_Salary",
+        size_max=42,
+        color_continuous_scale="Viridis",
+        title="Salary Analysis by Occupation",
+        hover_data={group_col: True, "Median_Salary": ":,.0f", "Job_Postings": True}
+    )
+
+    fig.update_layout(
+        xaxis_title="Occupation / Title",
+        yaxis_title="Median Salary ($, annualized)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="Inter, 'Fira Sans', Arial", size=13),
+        height=620
+    )
+    fig.update_xaxes(tickangle=35, tickfont=dict(size=11))
+
+    fig.show()
 
 
 ```
-
+## ✏️ Explanation
 
 # Career Pathway Trends (Sankey Diagram)
 
@@ -550,5 +679,5 @@ Across most industries, soft skills like communication and problem-solving appea
 
 ```
 
-
+## ✏️ Explanation
 
