@@ -669,15 +669,118 @@ else:
 ```
 ## ✏️ Explanation
 
+This chart shows how median annualized salaries vary across the most common job titles in the dataset.
+Larger bubbles represent job titles with a higher number of postings, while color indicates the relative salary level.
+From the visualization, we can see that technical and leadership roles such as “Data Architects,” “Principal Data Engineers,” and “SAP Data Analytics Managers” tend to offer the highest median salaries (often exceeding $160K), while more common positions like “Data Analyst” or “Business Intelligence Analyst” have lower median pay but significantly higher posting volume, reflecting strong demand for analytical talent across industries.
+
+
 # Career Pathway Trends (Sankey Diagram)
 
 ```{python}
 
+# --- Career Pathway Trends (Sankey): TITLE_NAME → ONET_NAME ---
 
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
 
+REQ = {"TITLE_NAME", "ONET_NAME"}
+if not REQ.issubset(df.columns):
+    print(f"❌ Missing columns for Sankey: need {REQ}, have {set(df.columns)}")
+else:
+    # Params you can tweak
+    TOP_TITLES = 20      # keep top-N job titles by postings
+    TOP_ONETS  = 20      # keep top-N ONET occupations by postings
+    MIN_FLOW   = 10      # drop very tiny flows to declutter
+
+    # Clean & filter
+    sankey_df = (
+        df[["TITLE_NAME", "ONET_NAME"]]
+        .dropna()
+        .assign(
+            TITLE_NAME=lambda d: d["TITLE_NAME"].str.strip(),
+            ONET_NAME=lambda d: d["ONET_NAME"].str.strip(),
+        )
+        .query("TITLE_NAME != '' and ONET_NAME != ''")
+    )
+
+    # Keep only top titles / onets to make the diagram readable
+    top_titles = sankey_df["TITLE_NAME"].value_counts().nlargest(TOP_TITLES).index
+    top_onets  = sankey_df["ONET_NAME"].value_counts().nlargest(TOP_ONETS).index
+    sankey_df  = sankey_df[sankey_df["TITLE_NAME"].isin(top_titles) & sankey_df["ONET_NAME"].isin(top_onets)]
+
+    flows = (
+        sankey_df
+        .value_counts(["TITLE_NAME", "ONET_NAME"])
+        .rename("count")
+        .reset_index()
+    )
+    flows = flows[flows["count"] >= MIN_FLOW].sort_values("count", ascending=False)
+
+    # Diagnostics
+    diag = {
+        "Rows considered": int(len(sankey_df)),
+        "Unique Titles": int(sankey_df["TITLE_NAME"].nunique()),
+        "Unique ONETs": int(sankey_df["ONET_NAME"].nunique()),
+        "Flows kept": int(len(flows)),
+        "Min flow shown": int(MIN_FLOW),
+    }
+    print("ℹ️ Sankey diagnostics:", diag)
+
+    if flows.empty:
+        print("⚠️ No flows after filtering. Try lowering MIN_FLOW or increasing TOP_TITLES/TOP_ONETS.")
+    else:
+        # Build node list
+        src_labels = flows["TITLE_NAME"].tolist()
+        tgt_labels = flows["ONET_NAME"].tolist()
+        all_labels = pd.Index(src_labels + tgt_labels).unique().tolist()
+
+        # indices for plotly
+        label_to_idx = {lab: i for i, lab in enumerate(all_labels)}
+        sources = flows["TITLE_NAME"].map(label_to_idx).tolist()
+        targets = flows["ONET_NAME"].map(label_to_idx).tolist()
+        values  = flows["count"].tolist()
+
+        # Optional: color nodes by side (titles vs onets)
+        node_colors = []
+        for lab in all_labels:
+            if lab in top_titles:
+                node_colors.append("rgba(56, 182, 255, 0.8)")  # blue-ish for titles
+            else:
+                node_colors.append("rgba(72, 201, 176, 0.8)")  # teal-ish for ONET
+
+        link_color = "rgba(200, 200, 200, 0.35)"
+
+        fig = go.Figure(data=[go.Sankey(
+            arrangement="snap",
+            node=dict(
+                pad=16,
+                thickness=18,
+                line=dict(width=0.5, color="rgba(0,0,0,0.25)"),
+                label=all_labels,
+                color=node_colors
+            ),
+            link=dict(
+                source=sources,
+                target=targets,
+                value=values,
+                color=link_color
+            )
+        )])
+
+        fig.update_layout(
+            title="Career Pathway Trends (Job Title → ONET Occupation)",
+            font=dict(size=12),
+            height=650,
+            margin=dict(l=10, r=10, t=50, b=10),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)"
+        )
+        fig.show()
 
 
 ```
 
 ## ✏️ Explanation
-
+The Sankey diagram shows how various job titles—such as Data Analyst, Data Modeler, and ERP Business Analyst—flow into a single ONET occupation category, Business Intelligence Analysts.
+This highlights that many data-related positions ultimately map to the same occupational classification, reflecting the overlap and convergence of skills within business intelligence and analytics roles.
