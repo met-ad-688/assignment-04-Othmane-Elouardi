@@ -333,6 +333,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#save-the-cleaned-dataset" id="toc-save-the-cleaned-dataset" class="nav-link" data-scroll-target="#save-the-cleaned-dataset"><span class="header-section-number">3.2</span> Save the Cleaned Dataset</a></li>
   </ul></li>
   <li><a href="#salary-by-education-level" id="toc-salary-by-education-level" class="nav-link" data-scroll-target="#salary-by-education-level"><span class="header-section-number">4</span> Salary by Education Level</a></li>
+  <li><a href="#salary-by-remote-work-type" id="toc-salary-by-remote-work-type" class="nav-link" data-scroll-target="#salary-by-remote-work-type"><span class="header-section-number">5</span> Salary by Remote Work Type</a></li>
   </ul>
 </nav>
     </div>
@@ -387,7 +388,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h1 data-number="2"><span class="header-section-number">2</span> Load the Dataset</h1>
 <p>In this step, we’ll use <strong>PySpark</strong> to load the <em>Lightcast Job Postings</em> dataset into a Spark DataFrame.<br>
 This allows us to handle large data efficiently before moving to Pandas for visualization.</p>
-<div id="91ed92b7" class="cell" data-execution_count="1">
+<div id="4cee6f24" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1"></a><span class="co"># Load the Lightcast dataset with PySpark</span></span>
@@ -581,7 +582,7 @@ only showing top 5 rows</code></pre>
 The process involves identifying relevant columns, converting data types, and handling missing values appropriately.</p>
 <section id="typecast-key-columns" class="level2" data-number="3.1">
 <h2 data-number="3.1" class="anchored" data-anchor-id="typecast-key-columns"><span class="header-section-number">3.1</span> Typecast Key Columns:</h2>
-<div id="e00be0ec" class="cell" data-execution_count="2">
+<div id="cc0a6846" class="cell" data-execution_count="2">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1"></a><span class="co"># Import necessary libraries</span></span>
@@ -625,7 +626,7 @@ only showing top 5 rows</code></pre>
 <section id="save-the-cleaned-dataset" class="level2" data-number="3.2">
 <h2 data-number="3.2" class="anchored" data-anchor-id="save-the-cleaned-dataset"><span class="header-section-number">3.2</span> Save the Cleaned Dataset</h2>
 <p>Now that the dataset has been cleaned and typecasted, we will save it as a new CSV file for later use.</p>
-<div id="62df8d33" class="cell" data-execution_count="3">
+<div id="9e4d9d32" class="cell" data-execution_count="3">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1"></a><span class="co"># Save cleaned dataset safely</span></span>
@@ -666,7 +667,7 @@ only showing top 5 rows</code></pre>
 </section>
 <section id="salary-by-education-level" class="level1" data-number="4">
 <h1 data-number="4"><span class="header-section-number">4</span> Salary by Education Level</h1>
-<div id="7dc47628" class="cell" data-execution_count="4">
+<div id="9a27066d" class="cell" data-execution_count="4">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1"></a><span class="co"># --- Salary by Education Level -----------------------------------------------</span></span>
@@ -827,6 +828,172 @@ A spike near zero indicates missing or placeholder salaries that should be filte
 <p><strong>Salary Distribution — Master’s or PhD</strong><br>
 The center of the distribution is higher than the bachelor’s group, reflecting an earnings premium.<br>
 A longer upper tail suggests specialized or lead roles command top-end salaries.</p>
+</div>
+</div>
+</section>
+<section id="salary-by-remote-work-type" class="level1" data-number="5">
+<h1 data-number="5"><span class="header-section-number">5</span> Salary by Remote Work Type</h1>
+<div id="18f1f379" class="cell" data-execution_count="5">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1"></a><span class="co"># --- Salary by Remote Work Type ----------------------------------------------</span></span>
+<span id="cb8-2"><a href="#cb8-2"></a><span class="im">from</span> pyspark.sql <span class="im">import</span> functions <span class="im">as</span> F</span>
+<span id="cb8-3"><a href="#cb8-3"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb8-4"><a href="#cb8-4"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb8-5"><a href="#cb8-5"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb8-6"><a href="#cb8-6"></a><span class="im">from</span> IPython.display <span class="im">import</span> Markdown, display</span>
+<span id="cb8-7"><a href="#cb8-7"></a></span>
+<span id="cb8-8"><a href="#cb8-8"></a><span class="co"># --- 1. Check if REMOTE_TYPE_NAME exists ---</span></span>
+<span id="cb8-9"><a href="#cb8-9"></a><span class="cf">if</span> <span class="st">"REMOTE_TYPE_NAME"</span> <span class="kw">not</span> <span class="kw">in</span> clean_df.columns:</span>
+<span id="cb8-10"><a href="#cb8-10"></a>    <span class="cf">raise</span> <span class="pp">ValueError</span>(<span class="st">"Column 'REMOTE_TYPE_NAME' not found in dataset."</span>)</span>
+<span id="cb8-11"><a href="#cb8-11"></a></span>
+<span id="cb8-12"><a href="#cb8-12"></a><span class="co"># --- 2. Create a simplified DataFrame for visualization ---</span></span>
+<span id="cb8-13"><a href="#cb8-13"></a>sdf <span class="op">=</span> clean_df.select(</span>
+<span id="cb8-14"><a href="#cb8-14"></a>    <span class="st">"REMOTE_TYPE_NAME"</span>,</span>
+<span id="cb8-15"><a href="#cb8-15"></a>    <span class="st">"MAX_YEARS_EXPERIENCE"</span>,</span>
+<span id="cb8-16"><a href="#cb8-16"></a>    <span class="st">"AVERAGE_SALARY"</span></span>
+<span id="cb8-17"><a href="#cb8-17"></a>)</span>
+<span id="cb8-18"><a href="#cb8-18"></a></span>
+<span id="cb8-19"><a href="#cb8-19"></a><span class="co"># --- 3. Convert to Pandas sample for plotting ---</span></span>
+<span id="cb8-20"><a href="#cb8-20"></a>pdf <span class="op">=</span> sdf.sample(<span class="fl">0.1</span>, seed<span class="op">=</span><span class="dv">42</span>).toPandas()</span>
+<span id="cb8-21"><a href="#cb8-21"></a></span>
+<span id="cb8-22"><a href="#cb8-22"></a><span class="co"># --- 4. Clean and group remote type labels ---</span></span>
+<span id="cb8-23"><a href="#cb8-23"></a><span class="kw">def</span> categorize_remote(val):</span>
+<span id="cb8-24"><a href="#cb8-24"></a>    <span class="cf">if</span> pd.isna(val) <span class="kw">or</span> <span class="bu">str</span>(val).strip() <span class="op">==</span> <span class="st">""</span>:</span>
+<span id="cb8-25"><a href="#cb8-25"></a>        <span class="cf">return</span> <span class="st">"Onsite"</span></span>
+<span id="cb8-26"><a href="#cb8-26"></a>    val <span class="op">=</span> val.lower()</span>
+<span id="cb8-27"><a href="#cb8-27"></a>    <span class="cf">if</span> <span class="st">"remote"</span> <span class="kw">in</span> val:</span>
+<span id="cb8-28"><a href="#cb8-28"></a>        <span class="cf">return</span> <span class="st">"Remote"</span></span>
+<span id="cb8-29"><a href="#cb8-29"></a>    <span class="cf">elif</span> <span class="st">"hybrid"</span> <span class="kw">in</span> val:</span>
+<span id="cb8-30"><a href="#cb8-30"></a>        <span class="cf">return</span> <span class="st">"Hybrid"</span></span>
+<span id="cb8-31"><a href="#cb8-31"></a>    <span class="cf">else</span>:</span>
+<span id="cb8-32"><a href="#cb8-32"></a>        <span class="cf">return</span> <span class="st">"Onsite"</span></span>
+<span id="cb8-33"><a href="#cb8-33"></a></span>
+<span id="cb8-34"><a href="#cb8-34"></a>pdf[<span class="st">"Remote_Type_Group"</span>] <span class="op">=</span> pdf[<span class="st">"REMOTE_TYPE_NAME"</span>].<span class="bu">apply</span>(categorize_remote)</span>
+<span id="cb8-35"><a href="#cb8-35"></a></span>
+<span id="cb8-36"><a href="#cb8-36"></a><span class="co"># --- 5. Helper functions for inline explanations ---</span></span>
+<span id="cb8-37"><a href="#cb8-37"></a><span class="kw">def</span> explain(title, lines):</span>
+<span id="cb8-38"><a href="#cb8-38"></a>    display(Markdown(<span class="ss">f"**</span><span class="sc">{</span>title<span class="sc">}</span><span class="ss">**  </span><span class="ch">\n</span><span class="ss">"</span> <span class="op">+</span> <span class="st">"  </span><span class="ch">\n</span><span class="st">"</span>.join(lines)))</span>
+<span id="cb8-39"><a href="#cb8-39"></a></span>
+<span id="cb8-40"><a href="#cb8-40"></a><span class="kw">def</span> jitter(x, j<span class="op">=</span><span class="fl">0.15</span>):</span>
+<span id="cb8-41"><a href="#cb8-41"></a>    x <span class="op">=</span> np.asarray(pd.Series(x).fillna(<span class="dv">0</span>))</span>
+<span id="cb8-42"><a href="#cb8-42"></a>    <span class="cf">return</span> x <span class="op">+</span> np.random.uniform(<span class="op">-</span>j, j, size<span class="op">=</span><span class="bu">len</span>(x))</span>
+<span id="cb8-43"><a href="#cb8-43"></a></span>
+<span id="cb8-44"><a href="#cb8-44"></a><span class="co"># --- 6. Define explanations ---</span></span>
+<span id="cb8-45"><a href="#cb8-45"></a>scatter_notes <span class="op">=</span> {</span>
+<span id="cb8-46"><a href="#cb8-46"></a>    <span class="st">"Remote"</span>: [</span>
+<span id="cb8-47"><a href="#cb8-47"></a>        <span class="st">"Remote roles generally offer higher salaries across experience levels, reflecting competition for digital and distributed skills."</span>,</span>
+<span id="cb8-48"><a href="#cb8-48"></a>        <span class="st">"Salary spread is wider for remote jobs, suggesting varying levels of specialization and seniority."</span></span>
+<span id="cb8-49"><a href="#cb8-49"></a>    ],</span>
+<span id="cb8-50"><a href="#cb8-50"></a>    <span class="st">"Hybrid"</span>: [</span>
+<span id="cb8-51"><a href="#cb8-51"></a>        <span class="st">"Hybrid positions show moderate salaries, often balancing flexibility with in-office expectations."</span>,</span>
+<span id="cb8-52"><a href="#cb8-52"></a>        <span class="st">"Salaries increase gradually with experience, but few extreme outliers exist compared to remote roles."</span></span>
+<span id="cb8-53"><a href="#cb8-53"></a>    ],</span>
+<span id="cb8-54"><a href="#cb8-54"></a>    <span class="st">"Onsite"</span>: [</span>
+<span id="cb8-55"><a href="#cb8-55"></a>        <span class="st">"Onsite roles tend to cluster around lower-to-mid salary ranges with limited variation."</span>,</span>
+<span id="cb8-56"><a href="#cb8-56"></a>        <span class="st">"Experience appears to have a smaller impact on salary for onsite work compared to remote or hybrid."</span></span>
+<span id="cb8-57"><a href="#cb8-57"></a>    ]</span>
+<span id="cb8-58"><a href="#cb8-58"></a>}</span>
+<span id="cb8-59"><a href="#cb8-59"></a></span>
+<span id="cb8-60"><a href="#cb8-60"></a>hist_notes <span class="op">=</span> {</span>
+<span id="cb8-61"><a href="#cb8-61"></a>    <span class="st">"Remote"</span>: [</span>
+<span id="cb8-62"><a href="#cb8-62"></a>        <span class="st">"Remote salary distributions are slightly right-skewed, with many postings above the median salary level."</span>,</span>
+<span id="cb8-63"><a href="#cb8-63"></a>        <span class="st">"This supports the idea that remote opportunities attract higher-paying, skill-intensive jobs."</span></span>
+<span id="cb8-64"><a href="#cb8-64"></a>    ],</span>
+<span id="cb8-65"><a href="#cb8-65"></a>    <span class="st">"Hybrid"</span>: [</span>
+<span id="cb8-66"><a href="#cb8-66"></a>        <span class="st">"Hybrid roles show a balanced salary distribution with fewer high-end positions."</span>,</span>
+<span id="cb8-67"><a href="#cb8-67"></a>        <span class="st">"The curve suggests a steady middle-income concentration across job types."</span></span>
+<span id="cb8-68"><a href="#cb8-68"></a>    ],</span>
+<span id="cb8-69"><a href="#cb8-69"></a>    <span class="st">"Onsite"</span>: [</span>
+<span id="cb8-70"><a href="#cb8-70"></a>        <span class="st">"Onsite roles show the lowest median salaries and the strongest right-skew, with most salaries concentrated near the lower end."</span>,</span>
+<span id="cb8-71"><a href="#cb8-71"></a>        <span class="st">"The distribution confirms that traditional in-person jobs tend to offer less pay than hybrid or remote options."</span></span>
+<span id="cb8-72"><a href="#cb8-72"></a>    ]</span>
+<span id="cb8-73"><a href="#cb8-73"></a>}</span>
+<span id="cb8-74"><a href="#cb8-74"></a></span>
+<span id="cb8-75"><a href="#cb8-75"></a><span class="co"># --- 7. Scatter plots for each group ---</span></span>
+<span id="cb8-76"><a href="#cb8-76"></a><span class="cf">for</span> group <span class="kw">in</span> pdf[<span class="st">"Remote_Type_Group"</span>].unique():</span>
+<span id="cb8-77"><a href="#cb8-77"></a>    subset <span class="op">=</span> pdf[pdf[<span class="st">"Remote_Type_Group"</span>] <span class="op">==</span> group]</span>
+<span id="cb8-78"><a href="#cb8-78"></a></span>
+<span id="cb8-79"><a href="#cb8-79"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">8</span>,<span class="dv">5</span>))</span>
+<span id="cb8-80"><a href="#cb8-80"></a>    plt.scatter(jitter(subset[<span class="st">"MAX_YEARS_EXPERIENCE"</span>]), subset[<span class="st">"AVERAGE_SALARY"</span>], s<span class="op">=</span><span class="dv">15</span>, alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
+<span id="cb8-81"><a href="#cb8-81"></a>    plt.title(<span class="ss">f"Salary vs. Experience — </span><span class="sc">{</span>group<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb8-82"><a href="#cb8-82"></a>    plt.xlabel(<span class="st">"Max Years Experience (jittered)"</span>)</span>
+<span id="cb8-83"><a href="#cb8-83"></a>    plt.ylabel(<span class="st">"Average Salary"</span>)</span>
+<span id="cb8-84"><a href="#cb8-84"></a>    plt.tight_layout()</span>
+<span id="cb8-85"><a href="#cb8-85"></a>    plt.show()</span>
+<span id="cb8-86"><a href="#cb8-86"></a></span>
+<span id="cb8-87"><a href="#cb8-87"></a>    explain(<span class="ss">f"Salary vs. Experience — </span><span class="sc">{</span>group<span class="sc">}</span><span class="ss">"</span>, scatter_notes.get(group, [</span>
+<span id="cb8-88"><a href="#cb8-88"></a>        <span class="st">"Salaries show some relationship with experience."</span>,</span>
+<span id="cb8-89"><a href="#cb8-89"></a>        <span class="st">"Variation across remote types suggests differences in job flexibility and demand."</span></span>
+<span id="cb8-90"><a href="#cb8-90"></a>    ]))</span>
+<span id="cb8-91"><a href="#cb8-91"></a></span>
+<span id="cb8-92"><a href="#cb8-92"></a><span class="co"># --- 8. Histogram plots for each group ---</span></span>
+<span id="cb8-93"><a href="#cb8-93"></a><span class="cf">for</span> group <span class="kw">in</span> pdf[<span class="st">"Remote_Type_Group"</span>].unique():</span>
+<span id="cb8-94"><a href="#cb8-94"></a>    subset <span class="op">=</span> pdf.loc[pdf[<span class="st">"Remote_Type_Group"</span>] <span class="op">==</span> group, <span class="st">"AVERAGE_SALARY"</span>].dropna()</span>
+<span id="cb8-95"><a href="#cb8-95"></a></span>
+<span id="cb8-96"><a href="#cb8-96"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">8</span>,<span class="dv">5</span>))</span>
+<span id="cb8-97"><a href="#cb8-97"></a>    counts, edges, _ <span class="op">=</span> plt.hist(subset, bins<span class="op">=</span><span class="dv">30</span>, density<span class="op">=</span><span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.7</span>)</span>
+<span id="cb8-98"><a href="#cb8-98"></a>    centers <span class="op">=</span> (edges[:<span class="op">-</span><span class="dv">1</span>] <span class="op">+</span> edges[<span class="dv">1</span>:]) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb8-99"><a href="#cb8-99"></a>    smooth <span class="op">=</span> pd.Series(counts).rolling(window<span class="op">=</span><span class="dv">3</span>, center<span class="op">=</span><span class="va">True</span>, min_periods<span class="op">=</span><span class="dv">1</span>).mean()</span>
+<span id="cb8-100"><a href="#cb8-100"></a>    plt.plot(centers, smooth, linewidth<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb8-101"><a href="#cb8-101"></a>    plt.title(<span class="ss">f"Salary Distribution — </span><span class="sc">{</span>group<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb8-102"><a href="#cb8-102"></a>    plt.xlabel(<span class="st">"Average Salary"</span>)</span>
+<span id="cb8-103"><a href="#cb8-103"></a>    plt.ylabel(<span class="st">"Density"</span>)</span>
+<span id="cb8-104"><a href="#cb8-104"></a>    plt.tight_layout()</span>
+<span id="cb8-105"><a href="#cb8-105"></a>    plt.show()</span>
+<span id="cb8-106"><a href="#cb8-106"></a></span>
+<span id="cb8-107"><a href="#cb8-107"></a>    explain(<span class="ss">f"Salary Distribution — </span><span class="sc">{</span>group<span class="sc">}</span><span class="ss">"</span>, hist_notes.get(group, [</span>
+<span id="cb8-108"><a href="#cb8-108"></a>        <span class="st">"The salary distribution is right-skewed with most values in lower ranges."</span>,</span>
+<span id="cb8-109"><a href="#cb8-109"></a>        <span class="st">"Higher-paying roles appear less frequently but form the upper salary tail."</span></span>
+<span id="cb8-110"><a href="#cb8-110"></a>    ]))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="assignment04-Lab02-othmane_files/figure-html/cell-6-output-1.png" width="758" height="470" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display cell-output-markdown">
+<p><strong>Salary vs.&nbsp;Experience — Onsite</strong><br>
+Onsite roles tend to cluster around lower-to-mid salary ranges with limited variation.<br>
+Experience appears to have a smaller impact on salary for onsite work compared to remote or hybrid.</p>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="assignment04-Lab02-othmane_files/figure-html/cell-6-output-3.png" width="758" height="470" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display cell-output-markdown">
+<p><strong>Salary vs.&nbsp;Experience — Remote</strong><br>
+Remote roles generally offer higher salaries across experience levels, reflecting competition for digital and distributed skills.<br>
+Salary spread is wider for remote jobs, suggesting varying levels of specialization and seniority.</p>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="assignment04-Lab02-othmane_files/figure-html/cell-6-output-5.png" width="758" height="470" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display cell-output-markdown">
+<p><strong>Salary Distribution — Onsite</strong><br>
+Onsite roles show the lowest median salaries and the strongest right-skew, with most salaries concentrated near the lower end.<br>
+The distribution confirms that traditional in-person jobs tend to offer less pay than hybrid or remote options.</p>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="assignment04-Lab02-othmane_files/figure-html/cell-6-output-7.png" width="758" height="470" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display cell-output-markdown">
+<p><strong>Salary Distribution — Remote</strong><br>
+Remote salary distributions are slightly right-skewed, with many postings above the median salary level.<br>
+This supports the idea that remote opportunities attract higher-paying, skill-intensive jobs.</p>
 </div>
 </div>
 
@@ -1300,287 +1467,403 @@ A longer upper tail suggests specialized or lead roles command top-end salaries.
     }
   });
   </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8" data-shortcodes="false"><pre class="sourceCode numberSource markdown number-lines code-with-copy"><code class="sourceCode markdown"><span id="cb8-1"><a href="#cb8-1"></a><span class="co">---</span></span>
-<span id="cb8-2"><a href="#cb8-2"></a><span class="an">title:</span><span class="co"> "Assignment 04 — Lab 02"</span></span>
-<span id="cb8-3"><a href="#cb8-3"></a><span class="an">subtitle:</span><span class="co"> "Insight from Data and Visualizations"</span></span>
-<span id="cb8-4"><a href="#cb8-4"></a><span class="an">author:</span></span>
-<span id="cb8-5"><a href="#cb8-5"></a><span class="co">  - name: "Othmane Elouardi"</span></span>
-<span id="cb8-6"><a href="#cb8-6"></a><span class="co">    affiliations:</span></span>
-<span id="cb8-7"><a href="#cb8-7"></a><span class="co">      - id: bu</span></span>
-<span id="cb8-8"><a href="#cb8-8"></a><span class="co">        name: "Boston University"</span></span>
-<span id="cb8-9"><a href="#cb8-9"></a><span class="co">        city: "Boston"</span></span>
-<span id="cb8-10"><a href="#cb8-10"></a><span class="co">        state: "MA"</span></span>
-<span id="cb8-11"><a href="#cb8-11"></a><span class="an">date:</span><span class="co"> "2025-10-08"</span></span>
-<span id="cb8-12"><a href="#cb8-12"></a><span class="an">number-sections:</span><span class="co"> true</span></span>
-<span id="cb8-13"><a href="#cb8-13"></a><span class="an">format:</span></span>
-<span id="cb8-14"><a href="#cb8-14"></a><span class="co">  html:</span></span>
-<span id="cb8-15"><a href="#cb8-15"></a><span class="co">    theme:</span></span>
-<span id="cb8-16"><a href="#cb8-16"></a><span class="co">      light: lux</span></span>
-<span id="cb8-17"><a href="#cb8-17"></a><span class="co">      dark: slate</span></span>
-<span id="cb8-18"><a href="#cb8-18"></a><span class="co">    toc: true</span></span>
-<span id="cb8-19"><a href="#cb8-19"></a><span class="co">    toc-depth: 3</span></span>
-<span id="cb8-20"><a href="#cb8-20"></a><span class="co">    toc-location: right</span></span>
-<span id="cb8-21"><a href="#cb8-21"></a><span class="co">    smooth-scroll: true</span></span>
-<span id="cb8-22"><a href="#cb8-22"></a><span class="co">    code-fold: true</span></span>
-<span id="cb8-23"><a href="#cb8-23"></a><span class="co">    code-tools: true</span></span>
-<span id="cb8-24"><a href="#cb8-24"></a><span class="co">    code-line-numbers: true</span></span>
-<span id="cb8-25"><a href="#cb8-25"></a><span class="co">    highlight-style: a11y</span></span>
-<span id="cb8-26"><a href="#cb8-26"></a><span class="co">    page-layout: article</span></span>
-<span id="cb8-27"><a href="#cb8-27"></a><span class="co">    css: styles.css</span></span>
-<span id="cb8-28"><a href="#cb8-28"></a><span class="co">    grid:</span></span>
-<span id="cb8-29"><a href="#cb8-29"></a><span class="co">      body-width: 900px</span></span>
-<span id="cb8-30"><a href="#cb8-30"></a><span class="co">      margin-width: 280px</span></span>
-<span id="cb8-31"><a href="#cb8-31"></a><span class="an">execute:</span></span>
-<span id="cb8-32"><a href="#cb8-32"></a><span class="co">  echo: true</span></span>
-<span id="cb8-33"><a href="#cb8-33"></a><span class="co">  warning: false</span></span>
-<span id="cb8-34"><a href="#cb8-34"></a><span class="co">  error: false</span></span>
-<span id="cb8-35"><a href="#cb8-35"></a><span class="co">  freeze: auto</span></span>
-<span id="cb8-36"><a href="#cb8-36"></a><span class="an">jupyter:</span><span class="co"> env</span></span>
-<span id="cb8-37"><a href="#cb8-37"></a><span class="co">---</span></span>
-<span id="cb8-38"><a href="#cb8-38"></a></span>
-<span id="cb8-39"><a href="#cb8-39"></a><span class="fu"># Introduction</span></span>
-<span id="cb8-40"><a href="#cb8-40"></a>The objective of this lab is to apply visual reporting and storytelling techniques to analyze job market data provided by Lightcast. Through this exercise, we will use PySpark and data visualization tools to explore, clean, and interpret a large dataset of job postings. The goal is to transform raw data into meaningful insights by identifying trends, patterns, and relationships between variables such as education level, remote work type, experience, and salary. This lab emphasizes not only technical proficiency in data processing but also the ability to communicate analytical findings effectively through visual narratives.</span>
-<span id="cb8-41"><a href="#cb8-41"></a></span>
-<span id="cb8-42"><a href="#cb8-42"></a><span class="fu"># Load the Dataset</span></span>
-<span id="cb8-43"><a href="#cb8-43"></a></span>
-<span id="cb8-44"><a href="#cb8-44"></a>In this step, we’ll use **PySpark** to load the *Lightcast Job Postings* dataset into a Spark DataFrame.  </span>
-<span id="cb8-45"><a href="#cb8-45"></a>This allows us to handle large data efficiently before moving to Pandas for visualization.</span>
-<span id="cb8-46"><a href="#cb8-46"></a></span>
-<span id="cb8-47"><a href="#cb8-47"></a></span>
-<span id="cb8-48"><a href="#cb8-48"></a></span>
-<span id="cb8-49"><a href="#cb8-49"></a></span>
-<span id="cb8-50"><a href="#cb8-50"></a></span>
-<span id="cb8-51"><a href="#cb8-51"></a></span>
-<span id="cb8-52"><a href="#cb8-52"></a></span>
-<span id="cb8-53"><a href="#cb8-53"></a></span>
-<span id="cb8-54"><a href="#cb8-54"></a></span>
-<span id="cb8-57"><a href="#cb8-57"></a><span class="in">```{python}</span></span>
-<span id="cb8-58"><a href="#cb8-58"></a><span class="co"># Load the Lightcast dataset with PySpark</span></span>
-<span id="cb8-59"><a href="#cb8-59"></a></span>
-<span id="cb8-60"><a href="#cb8-60"></a><span class="im">from</span> pyspark.sql <span class="im">import</span> SparkSession</span>
-<span id="cb8-61"><a href="#cb8-61"></a><span class="im">import</span> os</span>
-<span id="cb8-62"><a href="#cb8-62"></a></span>
-<span id="cb8-63"><a href="#cb8-63"></a><span class="co"># Initialize Spark session (optimized for EC2 memory limits)</span></span>
-<span id="cb8-64"><a href="#cb8-64"></a>spark <span class="op">=</span> (</span>
-<span id="cb8-65"><a href="#cb8-65"></a>    SparkSession.builder</span>
-<span id="cb8-66"><a href="#cb8-66"></a>    .appName(<span class="st">"LightcastData"</span>)</span>
-<span id="cb8-67"><a href="#cb8-67"></a>    .config(<span class="st">"spark.driver.memory"</span>, <span class="st">"1g"</span>)</span>
-<span id="cb8-68"><a href="#cb8-68"></a>    .getOrCreate()</span>
-<span id="cb8-69"><a href="#cb8-69"></a>)</span>
-<span id="cb8-70"><a href="#cb8-70"></a></span>
-<span id="cb8-71"><a href="#cb8-71"></a><span class="co"># Define dataset path</span></span>
-<span id="cb8-72"><a href="#cb8-72"></a>csv_path <span class="op">=</span> <span class="st">"data/lightcast_job_postings.csv"</span></span>
-<span id="cb8-73"><a href="#cb8-73"></a></span>
-<span id="cb8-74"><a href="#cb8-74"></a><span class="co"># Check path validity</span></span>
-<span id="cb8-75"><a href="#cb8-75"></a><span class="cf">if</span> <span class="kw">not</span> os.path.exists(csv_path):</span>
-<span id="cb8-76"><a href="#cb8-76"></a>    <span class="cf">raise</span> <span class="pp">FileNotFoundError</span>(</span>
-<span id="cb8-77"><a href="#cb8-77"></a>        <span class="ss">f"❌ Could not find </span><span class="sc">{</span>csv_path<span class="sc">}</span><span class="ss">. Please ensure the file exists in the data/ folder."</span></span>
-<span id="cb8-78"><a href="#cb8-78"></a>    )</span>
-<span id="cb8-79"><a href="#cb8-79"></a></span>
-<span id="cb8-80"><a href="#cb8-80"></a><span class="co"># Load dataset</span></span>
-<span id="cb8-81"><a href="#cb8-81"></a>df <span class="op">=</span> (</span>
-<span id="cb8-82"><a href="#cb8-82"></a>    spark.read</span>
-<span id="cb8-83"><a href="#cb8-83"></a>    .option(<span class="st">"header"</span>, <span class="st">"true"</span>)        <span class="co"># First row as headers</span></span>
-<span id="cb8-84"><a href="#cb8-84"></a>    .option(<span class="st">"inferSchema"</span>, <span class="st">"true"</span>)   <span class="co"># Auto-detect data types</span></span>
-<span id="cb8-85"><a href="#cb8-85"></a>    .option(<span class="st">"multiLine"</span>, <span class="st">"true"</span>)     <span class="co"># Handle multi-line text fields</span></span>
-<span id="cb8-86"><a href="#cb8-86"></a>    .option(<span class="st">"escape"</span>, <span class="st">"</span><span class="ch">\"</span><span class="st">"</span>)          <span class="co"># Handle embedded quotes</span></span>
-<span id="cb8-87"><a href="#cb8-87"></a>    .csv(csv_path)</span>
-<span id="cb8-88"><a href="#cb8-88"></a>)</span>
-<span id="cb8-89"><a href="#cb8-89"></a></span>
-<span id="cb8-90"><a href="#cb8-90"></a><span class="co"># Confirm load success</span></span>
-<span id="cb8-91"><a href="#cb8-91"></a><span class="bu">print</span>(<span class="st">"✅ Dataset successfully loaded!"</span>)</span>
-<span id="cb8-92"><a href="#cb8-92"></a>df.printSchema()</span>
-<span id="cb8-93"><a href="#cb8-93"></a>df.show(<span class="dv">5</span>, truncate<span class="op">=</span><span class="va">False</span>)</span>
-<span id="cb8-94"><a href="#cb8-94"></a></span>
-<span id="cb8-95"><a href="#cb8-95"></a><span class="in">```</span></span>
-<span id="cb8-96"><a href="#cb8-96"></a></span>
-<span id="cb8-97"><a href="#cb8-97"></a><span class="fu"># Data Cleaning and Typecasting</span></span>
-<span id="cb8-98"><a href="#cb8-98"></a></span>
-<span id="cb8-99"><a href="#cb8-99"></a>In this step, we will clean and typecast key columns in our dataset to prepare it for analysis.  </span>
-<span id="cb8-100"><a href="#cb8-100"></a>The process involves identifying relevant columns, converting data types, and handling missing values appropriately.</span>
-<span id="cb8-101"><a href="#cb8-101"></a></span>
-<span id="cb8-102"><a href="#cb8-102"></a><span class="fu">## Typecast Key Columns:</span></span>
-<span id="cb8-103"><a href="#cb8-103"></a></span>
-<span id="cb8-106"><a href="#cb8-106"></a><span class="in">```{python}</span></span>
-<span id="cb8-107"><a href="#cb8-107"></a><span class="co"># Import necessary libraries</span></span>
-<span id="cb8-108"><a href="#cb8-108"></a><span class="im">from</span> pyspark.sql <span class="im">import</span> functions <span class="im">as</span> F, types <span class="im">as</span> T</span>
-<span id="cb8-109"><a href="#cb8-109"></a><span class="im">import</span> os</span>
-<span id="cb8-110"><a href="#cb8-110"></a></span>
-<span id="cb8-111"><a href="#cb8-111"></a><span class="co">#  Select and typecast key columns</span></span>
-<span id="cb8-112"><a href="#cb8-112"></a><span class="co"># Convert salary fields to numeric values for later analysis</span></span>
-<span id="cb8-113"><a href="#cb8-113"></a>clean_df <span class="op">=</span> (</span>
-<span id="cb8-114"><a href="#cb8-114"></a>    df.withColumn(<span class="st">"SALARY_FROM"</span>, F.col(<span class="st">"SALARY_FROM"</span>).cast(T.DoubleType()))</span>
-<span id="cb8-115"><a href="#cb8-115"></a>      .withColumn(<span class="st">"SALARY_TO"</span>, F.col(<span class="st">"SALARY_TO"</span>).cast(T.DoubleType()))</span>
-<span id="cb8-116"><a href="#cb8-116"></a>      .withColumn(<span class="st">"MAX_YEARS_EXPERIENCE"</span>, F.col(<span class="st">"MAX_YEARS_EXPERIENCE"</span>).cast(T.DoubleType()))</span>
-<span id="cb8-117"><a href="#cb8-117"></a>)</span>
-<span id="cb8-118"><a href="#cb8-118"></a><span class="co"># Handle missing values</span></span>
-<span id="cb8-119"><a href="#cb8-119"></a><span class="co"># Fill missing numeric values with 0 (or another placeholder if desired)</span></span>
-<span id="cb8-120"><a href="#cb8-120"></a>clean_df <span class="op">=</span> clean_df.fillna({<span class="st">"SALARY_FROM"</span>: <span class="dv">0</span>, <span class="st">"SALARY_TO"</span>: <span class="dv">0</span>, <span class="st">"MAX_YEARS_EXPERIENCE"</span>: <span class="dv">0</span>})</span>
-<span id="cb8-121"><a href="#cb8-121"></a></span>
-<span id="cb8-122"><a href="#cb8-122"></a><span class="co"># Optional: Calculate average salary column for convenience</span></span>
-<span id="cb8-123"><a href="#cb8-123"></a>clean_df <span class="op">=</span> clean_df.withColumn(</span>
-<span id="cb8-124"><a href="#cb8-124"></a>    <span class="st">"AVERAGE_SALARY"</span>,</span>
-<span id="cb8-125"><a href="#cb8-125"></a>    (F.col(<span class="st">"SALARY_FROM"</span>) <span class="op">+</span> F.col(<span class="st">"SALARY_TO"</span>)) <span class="op">/</span> <span class="dv">2</span></span>
-<span id="cb8-126"><a href="#cb8-126"></a>)</span>
-<span id="cb8-127"><a href="#cb8-127"></a></span>
-<span id="cb8-128"><a href="#cb8-128"></a><span class="co"># Show a quick sample</span></span>
-<span id="cb8-129"><a href="#cb8-129"></a>clean_df.select(<span class="st">"SALARY_FROM"</span>, <span class="st">"SALARY_TO"</span>, <span class="st">"AVERAGE_SALARY"</span>, <span class="st">"MAX_YEARS_EXPERIENCE"</span>).show(<span class="dv">5</span>, truncate<span class="op">=</span><span class="va">False</span>)</span>
-<span id="cb8-130"><a href="#cb8-130"></a></span>
-<span id="cb8-131"><a href="#cb8-131"></a><span class="in">```</span></span>
-<span id="cb8-132"><a href="#cb8-132"></a></span>
-<span id="cb8-133"><a href="#cb8-133"></a><span class="fu">## Save the Cleaned Dataset</span></span>
-<span id="cb8-134"><a href="#cb8-134"></a>Now that the dataset has been cleaned and typecasted, we will save it as a new CSV file for later use.</span>
-<span id="cb8-135"><a href="#cb8-135"></a></span>
-<span id="cb8-136"><a href="#cb8-136"></a></span>
-<span id="cb8-139"><a href="#cb8-139"></a><span class="in">```{python}</span></span>
-<span id="cb8-140"><a href="#cb8-140"></a><span class="co"># Save cleaned dataset safely</span></span>
-<span id="cb8-141"><a href="#cb8-141"></a><span class="im">import</span> os, glob, shutil</span>
-<span id="cb8-142"><a href="#cb8-142"></a></span>
-<span id="cb8-143"><a href="#cb8-143"></a><span class="co"># keep only the columns needed downstream </span></span>
-<span id="cb8-144"><a href="#cb8-144"></a>cols_to_keep <span class="op">=</span> [c <span class="cf">for</span> c <span class="kw">in</span> [</span>
-<span id="cb8-145"><a href="#cb8-145"></a>    <span class="st">"SALARY_FROM"</span>,<span class="st">"SALARY_TO"</span>,<span class="st">"AVERAGE_SALARY"</span>,<span class="st">"MAX_YEARS_EXPERIENCE"</span>,</span>
-<span id="cb8-146"><a href="#cb8-146"></a>    <span class="co"># "EDUCATION_NAME","REMOTE_TYPE_NAME","LOT_V6_SPECIALIZED_OCCUPATION_NAME",</span></span>
-<span id="cb8-147"><a href="#cb8-147"></a>] <span class="cf">if</span> c <span class="kw">in</span> clean_df.columns]</span>
-<span id="cb8-148"><a href="#cb8-148"></a></span>
-<span id="cb8-149"><a href="#cb8-149"></a>tmp_dir   <span class="op">=</span> <span class="st">"_tmp_clean_csv"</span></span>
-<span id="cb8-150"><a href="#cb8-150"></a>final_csv <span class="op">=</span> <span class="st">"data/lightcast_cleaned.csv"</span></span>
-<span id="cb8-151"><a href="#cb8-151"></a></span>
-<span id="cb8-152"><a href="#cb8-152"></a><span class="co"># CSV part from Spark</span></span>
-<span id="cb8-153"><a href="#cb8-153"></a>(clean_df</span>
-<span id="cb8-154"><a href="#cb8-154"></a> .select(cols_to_keep) <span class="cf">if</span> cols_to_keep <span class="cf">else</span> clean_df</span>
-<span id="cb8-155"><a href="#cb8-155"></a>).coalesce(<span class="dv">1</span>).write.mode(<span class="st">"overwrite"</span>).option(<span class="st">"header"</span>,<span class="st">"true"</span>).csv(tmp_dir)</span>
-<span id="cb8-156"><a href="#cb8-156"></a></span>
-<span id="cb8-157"><a href="#cb8-157"></a><span class="co"># Move part-*.csv to final path</span></span>
-<span id="cb8-158"><a href="#cb8-158"></a>part_files <span class="op">=</span> glob.glob(os.path.join(tmp_dir, <span class="st">"part-*.csv"</span>))</span>
-<span id="cb8-159"><a href="#cb8-159"></a><span class="cf">if</span> <span class="kw">not</span> part_files:</span>
-<span id="cb8-160"><a href="#cb8-160"></a>    <span class="cf">raise</span> <span class="pp">RuntimeError</span>(<span class="st">"No part file found after Spark write."</span>)</span>
-<span id="cb8-161"><a href="#cb8-161"></a><span class="cf">if</span> os.path.exists(final_csv):</span>
-<span id="cb8-162"><a href="#cb8-162"></a>    os.remove(final_csv)</span>
-<span id="cb8-163"><a href="#cb8-163"></a>shutil.move(part_files[<span class="dv">0</span>], final_csv)</span>
-<span id="cb8-164"><a href="#cb8-164"></a>shutil.rmtree(tmp_dir, ignore_errors<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb8-165"><a href="#cb8-165"></a></span>
-<span id="cb8-166"><a href="#cb8-166"></a><span class="bu">print</span>(<span class="st">"✅ Cleaned dataset saved."</span>)</span>
-<span id="cb8-167"><a href="#cb8-167"></a><span class="bu">print</span>(<span class="ss">f"📁 File location: </span><span class="sc">{</span>final_csv<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb8-168"><a href="#cb8-168"></a></span>
-<span id="cb8-169"><a href="#cb8-169"></a></span>
-<span id="cb8-170"><a href="#cb8-170"></a><span class="in">```</span></span>
-<span id="cb8-171"><a href="#cb8-171"></a></span>
-<span id="cb8-172"><a href="#cb8-172"></a><span class="fu"># Salary by Education Level</span></span>
-<span id="cb8-173"><a href="#cb8-173"></a></span>
-<span id="cb8-174"><a href="#cb8-174"></a></span>
-<span id="cb8-177"><a href="#cb8-177"></a><span class="in">```{python}</span></span>
-<span id="cb8-178"><a href="#cb8-178"></a><span class="co"># --- Salary by Education Level -----------------------------------------------</span></span>
-<span id="cb8-179"><a href="#cb8-179"></a><span class="im">from</span> pyspark.sql <span class="im">import</span> functions <span class="im">as</span> F</span>
-<span id="cb8-180"><a href="#cb8-180"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb8-181"><a href="#cb8-181"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb8-182"><a href="#cb8-182"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb8-183"><a href="#cb8-183"></a><span class="im">from</span> IPython.display <span class="im">import</span> Markdown, display</span>
-<span id="cb8-184"><a href="#cb8-184"></a></span>
-<span id="cb8-185"><a href="#cb8-185"></a><span class="co"># --- 1. Identify the education column dynamically ---</span></span>
-<span id="cb8-186"><a href="#cb8-186"></a>edu_col <span class="op">=</span> <span class="bu">next</span>(</span>
-<span id="cb8-187"><a href="#cb8-187"></a>    (c <span class="cf">for</span> c <span class="kw">in</span> [<span class="st">"EDUCATION_LEVELS_NAME"</span>, <span class="st">"MIN_EDULEVELS_NAME"</span>, <span class="st">"MAX_EDULEVELS_NAME"</span>, <span class="st">"EDUCATION_LEVELS"</span>]</span>
-<span id="cb8-188"><a href="#cb8-188"></a>     <span class="cf">if</span> c <span class="kw">in</span> clean_df.columns),</span>
-<span id="cb8-189"><a href="#cb8-189"></a>    <span class="va">None</span></span>
-<span id="cb8-190"><a href="#cb8-190"></a>)</span>
-<span id="cb8-191"><a href="#cb8-191"></a></span>
-<span id="cb8-192"><a href="#cb8-192"></a><span class="cf">if</span> edu_col <span class="kw">is</span> <span class="va">None</span>:</span>
-<span id="cb8-193"><a href="#cb8-193"></a>    <span class="cf">raise</span> <span class="pp">ValueError</span>(<span class="st">"No education-related column found in the dataset."</span>)</span>
-<span id="cb8-194"><a href="#cb8-194"></a></span>
-<span id="cb8-195"><a href="#cb8-195"></a><span class="co"># --- 2. Prepare a smaller sample for visualization ---</span></span>
-<span id="cb8-196"><a href="#cb8-196"></a>sdf <span class="op">=</span> clean_df.select(</span>
-<span id="cb8-197"><a href="#cb8-197"></a>    F.col(edu_col).alias(<span class="st">"EDUCATION"</span>),</span>
-<span id="cb8-198"><a href="#cb8-198"></a>    <span class="st">"MAX_YEARS_EXPERIENCE"</span>,</span>
-<span id="cb8-199"><a href="#cb8-199"></a>    <span class="st">"AVERAGE_SALARY"</span></span>
-<span id="cb8-200"><a href="#cb8-200"></a>)</span>
-<span id="cb8-201"><a href="#cb8-201"></a></span>
-<span id="cb8-202"><a href="#cb8-202"></a><span class="co"># --- 3. Convert to Pandas for visualization ---</span></span>
-<span id="cb8-203"><a href="#cb8-203"></a>pdf <span class="op">=</span> sdf.sample(<span class="fl">0.1</span>, seed<span class="op">=</span><span class="dv">42</span>).toPandas()</span>
-<span id="cb8-204"><a href="#cb8-204"></a></span>
-<span id="cb8-205"><a href="#cb8-205"></a><span class="co"># --- 4. Group education levels into two categories ---</span></span>
-<span id="cb8-206"><a href="#cb8-206"></a><span class="kw">def</span> categorize_education(edu):</span>
-<span id="cb8-207"><a href="#cb8-207"></a>    <span class="cf">if</span> pd.isna(edu):</span>
-<span id="cb8-208"><a href="#cb8-208"></a>        <span class="cf">return</span> <span class="st">"Bachelor’s or lower"</span></span>
-<span id="cb8-209"><a href="#cb8-209"></a>    edu <span class="op">=</span> edu.lower()</span>
-<span id="cb8-210"><a href="#cb8-210"></a>    <span class="cf">if</span> <span class="bu">any</span>(x <span class="kw">in</span> edu <span class="cf">for</span> x <span class="kw">in</span> [<span class="st">"bachelor"</span>, <span class="st">"associate"</span>, <span class="st">"ged"</span>, <span class="st">"no education"</span>]):</span>
-<span id="cb8-211"><a href="#cb8-211"></a>        <span class="cf">return</span> <span class="st">"Bachelor’s or lower"</span></span>
-<span id="cb8-212"><a href="#cb8-212"></a>    <span class="cf">elif</span> <span class="bu">any</span>(x <span class="kw">in</span> edu <span class="cf">for</span> x <span class="kw">in</span> [<span class="st">"master"</span>, <span class="st">"phd"</span>, <span class="st">"doctor"</span>, <span class="st">"professional"</span>]):</span>
-<span id="cb8-213"><a href="#cb8-213"></a>        <span class="cf">return</span> <span class="st">"Master’s or PhD"</span></span>
-<span id="cb8-214"><a href="#cb8-214"></a>    <span class="cf">else</span>:</span>
-<span id="cb8-215"><a href="#cb8-215"></a>        <span class="cf">return</span> <span class="st">"Bachelor’s or lower"</span></span>
-<span id="cb8-216"><a href="#cb8-216"></a></span>
-<span id="cb8-217"><a href="#cb8-217"></a>pdf[<span class="st">"Education_Group"</span>] <span class="op">=</span> pdf[<span class="st">"EDUCATION"</span>].<span class="bu">apply</span>(categorize_education)</span>
-<span id="cb8-218"><a href="#cb8-218"></a></span>
-<span id="cb8-219"><a href="#cb8-219"></a><span class="co"># --- 5. Helper functions for clean visuals and inline text ---</span></span>
-<span id="cb8-220"><a href="#cb8-220"></a><span class="kw">def</span> explain(title, lines):</span>
-<span id="cb8-221"><a href="#cb8-221"></a>    <span class="co">"""Render markdown explanations below each chart."""</span></span>
-<span id="cb8-222"><a href="#cb8-222"></a>    display(Markdown(<span class="ss">f"**</span><span class="sc">{</span>title<span class="sc">}</span><span class="ss">**  </span><span class="ch">\n</span><span class="ss">"</span> <span class="op">+</span> <span class="st">"  </span><span class="ch">\n</span><span class="st">"</span>.join(lines)))</span>
-<span id="cb8-223"><a href="#cb8-223"></a></span>
-<span id="cb8-224"><a href="#cb8-224"></a><span class="kw">def</span> jitter(x, j<span class="op">=</span><span class="fl">0.15</span>):</span>
-<span id="cb8-225"><a href="#cb8-225"></a>    <span class="co">"""Add small noise to reduce point overlap."""</span></span>
-<span id="cb8-226"><a href="#cb8-226"></a>    x <span class="op">=</span> np.asarray(pd.Series(x).fillna(<span class="dv">0</span>))</span>
-<span id="cb8-227"><a href="#cb8-227"></a>    <span class="cf">return</span> x <span class="op">+</span> np.random.uniform(<span class="op">-</span>j, j, size<span class="op">=</span><span class="bu">len</span>(x))</span>
-<span id="cb8-228"><a href="#cb8-228"></a></span>
-<span id="cb8-229"><a href="#cb8-229"></a><span class="co"># --- 6. Explanations for each group ---</span></span>
-<span id="cb8-230"><a href="#cb8-230"></a>scatter_notes <span class="op">=</span> {</span>
-<span id="cb8-231"><a href="#cb8-231"></a>    <span class="st">"Bachelor’s or lower"</span>: [</span>
-<span id="cb8-232"><a href="#cb8-232"></a>        <span class="st">"Salaries increase slightly with experience, but most jobs cluster at low experience with wide pay variation."</span>,</span>
-<span id="cb8-233"><a href="#cb8-233"></a>        <span class="st">"Several high-pay outliers at minimal experience suggest niche, high-demand roles."</span></span>
-<span id="cb8-234"><a href="#cb8-234"></a>    ],</span>
-<span id="cb8-235"><a href="#cb8-235"></a>    <span class="st">"Master’s or PhD"</span>: [</span>
-<span id="cb8-236"><a href="#cb8-236"></a>        <span class="st">"Advanced-degree roles show higher average salaries, especially beyond ~5 years of experience."</span>,</span>
-<span id="cb8-237"><a href="#cb8-237"></a>        <span class="st">"Variation remains wide, indicating experience alone doesn’t fully explain pay differences."</span></span>
-<span id="cb8-238"><a href="#cb8-238"></a>    ],</span>
-<span id="cb8-239"><a href="#cb8-239"></a>}</span>
-<span id="cb8-240"><a href="#cb8-240"></a></span>
-<span id="cb8-241"><a href="#cb8-241"></a>hist_notes <span class="op">=</span> {</span>
-<span id="cb8-242"><a href="#cb8-242"></a>    <span class="st">"Bachelor’s or lower"</span>: [</span>
-<span id="cb8-243"><a href="#cb8-243"></a>        <span class="st">"The distribution is strongly right-skewed with most postings in lower bands and a long high-pay tail."</span>,</span>
-<span id="cb8-244"><a href="#cb8-244"></a>        <span class="st">"A spike near zero indicates missing or placeholder salaries that should be filtered for clean stats."</span></span>
-<span id="cb8-245"><a href="#cb8-245"></a>    ],</span>
-<span id="cb8-246"><a href="#cb8-246"></a>    <span class="st">"Master’s or PhD"</span>: [</span>
-<span id="cb8-247"><a href="#cb8-247"></a>        <span class="st">"The center of the distribution is higher than the bachelor’s group, reflecting an earnings premium."</span>,</span>
-<span id="cb8-248"><a href="#cb8-248"></a>        <span class="st">"A longer upper tail suggests specialized or lead roles command top-end salaries."</span></span>
-<span id="cb8-249"><a href="#cb8-249"></a>    ],</span>
-<span id="cb8-250"><a href="#cb8-250"></a>}</span>
-<span id="cb8-251"><a href="#cb8-251"></a></span>
-<span id="cb8-252"><a href="#cb8-252"></a><span class="co"># --- 7. Scatter plots with explanations ---</span></span>
-<span id="cb8-253"><a href="#cb8-253"></a><span class="cf">for</span> group <span class="kw">in</span> pdf[<span class="st">"Education_Group"</span>].unique():</span>
-<span id="cb8-254"><a href="#cb8-254"></a>    subset <span class="op">=</span> pdf[pdf[<span class="st">"Education_Group"</span>] <span class="op">==</span> group]</span>
-<span id="cb8-255"><a href="#cb8-255"></a></span>
-<span id="cb8-256"><a href="#cb8-256"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">8</span>,<span class="dv">5</span>))</span>
-<span id="cb8-257"><a href="#cb8-257"></a>    plt.scatter(jitter(subset[<span class="st">"MAX_YEARS_EXPERIENCE"</span>]), subset[<span class="st">"AVERAGE_SALARY"</span>], s<span class="op">=</span><span class="dv">15</span>, alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
-<span id="cb8-258"><a href="#cb8-258"></a>    plt.title(<span class="ss">f"Salary vs. Experience — </span><span class="sc">{</span>group<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb8-259"><a href="#cb8-259"></a>    plt.xlabel(<span class="st">"Max Years Experience (jittered)"</span>)</span>
-<span id="cb8-260"><a href="#cb8-260"></a>    plt.ylabel(<span class="st">"Average Salary"</span>)</span>
-<span id="cb8-261"><a href="#cb8-261"></a>    plt.tight_layout()</span>
-<span id="cb8-262"><a href="#cb8-262"></a>    plt.show()</span>
-<span id="cb8-263"><a href="#cb8-263"></a></span>
-<span id="cb8-264"><a href="#cb8-264"></a>    explain(<span class="ss">f"Salary vs. Experience — </span><span class="sc">{</span>group<span class="sc">}</span><span class="ss">"</span>, scatter_notes.get(group, [</span>
-<span id="cb8-265"><a href="#cb8-265"></a>        <span class="st">"Salaries show a weak positive relationship with experience."</span>,</span>
-<span id="cb8-266"><a href="#cb8-266"></a>        <span class="st">"Wide dispersion suggests role and industry strongly influence pay."</span></span>
-<span id="cb8-267"><a href="#cb8-267"></a>    ]))</span>
-<span id="cb8-268"><a href="#cb8-268"></a></span>
-<span id="cb8-269"><a href="#cb8-269"></a><span class="co"># --- 8. Histograms with explanations ---</span></span>
-<span id="cb8-270"><a href="#cb8-270"></a><span class="cf">for</span> group <span class="kw">in</span> pdf[<span class="st">"Education_Group"</span>].unique():</span>
-<span id="cb8-271"><a href="#cb8-271"></a>    subset <span class="op">=</span> pdf.loc[pdf[<span class="st">"Education_Group"</span>] <span class="op">==</span> group, <span class="st">"AVERAGE_SALARY"</span>].dropna()</span>
-<span id="cb8-272"><a href="#cb8-272"></a></span>
-<span id="cb8-273"><a href="#cb8-273"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">8</span>,<span class="dv">5</span>))</span>
-<span id="cb8-274"><a href="#cb8-274"></a>    counts, edges, _ <span class="op">=</span> plt.hist(subset, bins<span class="op">=</span><span class="dv">30</span>, density<span class="op">=</span><span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.7</span>)</span>
-<span id="cb8-275"><a href="#cb8-275"></a>    centers <span class="op">=</span> (edges[:<span class="op">-</span><span class="dv">1</span>] <span class="op">+</span> edges[<span class="dv">1</span>:]) <span class="op">/</span> <span class="dv">2</span></span>
-<span id="cb8-276"><a href="#cb8-276"></a>    smooth <span class="op">=</span> pd.Series(counts).rolling(window<span class="op">=</span><span class="dv">3</span>, center<span class="op">=</span><span class="va">True</span>, min_periods<span class="op">=</span><span class="dv">1</span>).mean()</span>
-<span id="cb8-277"><a href="#cb8-277"></a>    plt.plot(centers, smooth, linewidth<span class="op">=</span><span class="dv">2</span>)</span>
-<span id="cb8-278"><a href="#cb8-278"></a>    plt.title(<span class="ss">f"Salary Distribution — </span><span class="sc">{</span>group<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb8-279"><a href="#cb8-279"></a>    plt.xlabel(<span class="st">"Average Salary"</span>)</span>
-<span id="cb8-280"><a href="#cb8-280"></a>    plt.ylabel(<span class="st">"Density"</span>)</span>
-<span id="cb8-281"><a href="#cb8-281"></a>    plt.tight_layout()</span>
-<span id="cb8-282"><a href="#cb8-282"></a>    plt.show()</span>
-<span id="cb8-283"><a href="#cb8-283"></a></span>
-<span id="cb8-284"><a href="#cb8-284"></a>    explain(<span class="ss">f"Salary Distribution — </span><span class="sc">{</span>group<span class="sc">}</span><span class="ss">"</span>, hist_notes.get(group, [</span>
-<span id="cb8-285"><a href="#cb8-285"></a>        <span class="st">"Right-skewed distribution with most values in lower bands."</span>,</span>
-<span id="cb8-286"><a href="#cb8-286"></a>        <span class="st">"Upper tail indicates a subset of high-pay roles."</span></span>
-<span id="cb8-287"><a href="#cb8-287"></a>    ]))</span>
-<span id="cb8-288"><a href="#cb8-288"></a></span>
-<span id="cb8-289"><a href="#cb8-289"></a><span class="in">```</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9" data-shortcodes="false"><pre class="sourceCode numberSource markdown number-lines code-with-copy"><code class="sourceCode markdown"><span id="cb9-1"><a href="#cb9-1"></a><span class="co">---</span></span>
+<span id="cb9-2"><a href="#cb9-2"></a><span class="an">title:</span><span class="co"> "Assignment 04 — Lab 02"</span></span>
+<span id="cb9-3"><a href="#cb9-3"></a><span class="an">subtitle:</span><span class="co"> "Insight from Data and Visualizations"</span></span>
+<span id="cb9-4"><a href="#cb9-4"></a><span class="an">author:</span></span>
+<span id="cb9-5"><a href="#cb9-5"></a><span class="co">  - name: "Othmane Elouardi"</span></span>
+<span id="cb9-6"><a href="#cb9-6"></a><span class="co">    affiliations:</span></span>
+<span id="cb9-7"><a href="#cb9-7"></a><span class="co">      - id: bu</span></span>
+<span id="cb9-8"><a href="#cb9-8"></a><span class="co">        name: "Boston University"</span></span>
+<span id="cb9-9"><a href="#cb9-9"></a><span class="co">        city: "Boston"</span></span>
+<span id="cb9-10"><a href="#cb9-10"></a><span class="co">        state: "MA"</span></span>
+<span id="cb9-11"><a href="#cb9-11"></a><span class="an">date:</span><span class="co"> "2025-10-08"</span></span>
+<span id="cb9-12"><a href="#cb9-12"></a><span class="an">number-sections:</span><span class="co"> true</span></span>
+<span id="cb9-13"><a href="#cb9-13"></a><span class="an">format:</span></span>
+<span id="cb9-14"><a href="#cb9-14"></a><span class="co">  html:</span></span>
+<span id="cb9-15"><a href="#cb9-15"></a><span class="co">    theme:</span></span>
+<span id="cb9-16"><a href="#cb9-16"></a><span class="co">      light: lux</span></span>
+<span id="cb9-17"><a href="#cb9-17"></a><span class="co">      dark: slate</span></span>
+<span id="cb9-18"><a href="#cb9-18"></a><span class="co">    toc: true</span></span>
+<span id="cb9-19"><a href="#cb9-19"></a><span class="co">    toc-depth: 3</span></span>
+<span id="cb9-20"><a href="#cb9-20"></a><span class="co">    toc-location: right</span></span>
+<span id="cb9-21"><a href="#cb9-21"></a><span class="co">    smooth-scroll: true</span></span>
+<span id="cb9-22"><a href="#cb9-22"></a><span class="co">    code-fold: true</span></span>
+<span id="cb9-23"><a href="#cb9-23"></a><span class="co">    code-tools: true</span></span>
+<span id="cb9-24"><a href="#cb9-24"></a><span class="co">    code-line-numbers: true</span></span>
+<span id="cb9-25"><a href="#cb9-25"></a><span class="co">    highlight-style: a11y</span></span>
+<span id="cb9-26"><a href="#cb9-26"></a><span class="co">    page-layout: article</span></span>
+<span id="cb9-27"><a href="#cb9-27"></a><span class="co">    css: styles.css</span></span>
+<span id="cb9-28"><a href="#cb9-28"></a><span class="co">    grid:</span></span>
+<span id="cb9-29"><a href="#cb9-29"></a><span class="co">      body-width: 900px</span></span>
+<span id="cb9-30"><a href="#cb9-30"></a><span class="co">      margin-width: 280px</span></span>
+<span id="cb9-31"><a href="#cb9-31"></a><span class="an">execute:</span></span>
+<span id="cb9-32"><a href="#cb9-32"></a><span class="co">  echo: true</span></span>
+<span id="cb9-33"><a href="#cb9-33"></a><span class="co">  warning: false</span></span>
+<span id="cb9-34"><a href="#cb9-34"></a><span class="co">  error: false</span></span>
+<span id="cb9-35"><a href="#cb9-35"></a><span class="co">  freeze: auto</span></span>
+<span id="cb9-36"><a href="#cb9-36"></a><span class="an">jupyter:</span><span class="co"> env</span></span>
+<span id="cb9-37"><a href="#cb9-37"></a><span class="co">---</span></span>
+<span id="cb9-38"><a href="#cb9-38"></a></span>
+<span id="cb9-39"><a href="#cb9-39"></a><span class="fu"># Introduction</span></span>
+<span id="cb9-40"><a href="#cb9-40"></a>The objective of this lab is to apply visual reporting and storytelling techniques to analyze job market data provided by Lightcast. Through this exercise, we will use PySpark and data visualization tools to explore, clean, and interpret a large dataset of job postings. The goal is to transform raw data into meaningful insights by identifying trends, patterns, and relationships between variables such as education level, remote work type, experience, and salary. This lab emphasizes not only technical proficiency in data processing but also the ability to communicate analytical findings effectively through visual narratives.</span>
+<span id="cb9-41"><a href="#cb9-41"></a></span>
+<span id="cb9-42"><a href="#cb9-42"></a><span class="fu"># Load the Dataset</span></span>
+<span id="cb9-43"><a href="#cb9-43"></a></span>
+<span id="cb9-44"><a href="#cb9-44"></a>In this step, we’ll use **PySpark** to load the *Lightcast Job Postings* dataset into a Spark DataFrame.  </span>
+<span id="cb9-45"><a href="#cb9-45"></a>This allows us to handle large data efficiently before moving to Pandas for visualization.</span>
+<span id="cb9-46"><a href="#cb9-46"></a></span>
+<span id="cb9-47"><a href="#cb9-47"></a></span>
+<span id="cb9-48"><a href="#cb9-48"></a></span>
+<span id="cb9-49"><a href="#cb9-49"></a></span>
+<span id="cb9-50"><a href="#cb9-50"></a></span>
+<span id="cb9-51"><a href="#cb9-51"></a></span>
+<span id="cb9-52"><a href="#cb9-52"></a></span>
+<span id="cb9-53"><a href="#cb9-53"></a></span>
+<span id="cb9-54"><a href="#cb9-54"></a></span>
+<span id="cb9-57"><a href="#cb9-57"></a><span class="in">```{python}</span></span>
+<span id="cb9-58"><a href="#cb9-58"></a><span class="co"># Load the Lightcast dataset with PySpark</span></span>
+<span id="cb9-59"><a href="#cb9-59"></a></span>
+<span id="cb9-60"><a href="#cb9-60"></a><span class="im">from</span> pyspark.sql <span class="im">import</span> SparkSession</span>
+<span id="cb9-61"><a href="#cb9-61"></a><span class="im">import</span> os</span>
+<span id="cb9-62"><a href="#cb9-62"></a></span>
+<span id="cb9-63"><a href="#cb9-63"></a><span class="co"># Initialize Spark session (optimized for EC2 memory limits)</span></span>
+<span id="cb9-64"><a href="#cb9-64"></a>spark <span class="op">=</span> (</span>
+<span id="cb9-65"><a href="#cb9-65"></a>    SparkSession.builder</span>
+<span id="cb9-66"><a href="#cb9-66"></a>    .appName(<span class="st">"LightcastData"</span>)</span>
+<span id="cb9-67"><a href="#cb9-67"></a>    .config(<span class="st">"spark.driver.memory"</span>, <span class="st">"1g"</span>)</span>
+<span id="cb9-68"><a href="#cb9-68"></a>    .getOrCreate()</span>
+<span id="cb9-69"><a href="#cb9-69"></a>)</span>
+<span id="cb9-70"><a href="#cb9-70"></a></span>
+<span id="cb9-71"><a href="#cb9-71"></a><span class="co"># Define dataset path</span></span>
+<span id="cb9-72"><a href="#cb9-72"></a>csv_path <span class="op">=</span> <span class="st">"data/lightcast_job_postings.csv"</span></span>
+<span id="cb9-73"><a href="#cb9-73"></a></span>
+<span id="cb9-74"><a href="#cb9-74"></a><span class="co"># Check path validity</span></span>
+<span id="cb9-75"><a href="#cb9-75"></a><span class="cf">if</span> <span class="kw">not</span> os.path.exists(csv_path):</span>
+<span id="cb9-76"><a href="#cb9-76"></a>    <span class="cf">raise</span> <span class="pp">FileNotFoundError</span>(</span>
+<span id="cb9-77"><a href="#cb9-77"></a>        <span class="ss">f"❌ Could not find </span><span class="sc">{</span>csv_path<span class="sc">}</span><span class="ss">. Please ensure the file exists in the data/ folder."</span></span>
+<span id="cb9-78"><a href="#cb9-78"></a>    )</span>
+<span id="cb9-79"><a href="#cb9-79"></a></span>
+<span id="cb9-80"><a href="#cb9-80"></a><span class="co"># Load dataset</span></span>
+<span id="cb9-81"><a href="#cb9-81"></a>df <span class="op">=</span> (</span>
+<span id="cb9-82"><a href="#cb9-82"></a>    spark.read</span>
+<span id="cb9-83"><a href="#cb9-83"></a>    .option(<span class="st">"header"</span>, <span class="st">"true"</span>)        <span class="co"># First row as headers</span></span>
+<span id="cb9-84"><a href="#cb9-84"></a>    .option(<span class="st">"inferSchema"</span>, <span class="st">"true"</span>)   <span class="co"># Auto-detect data types</span></span>
+<span id="cb9-85"><a href="#cb9-85"></a>    .option(<span class="st">"multiLine"</span>, <span class="st">"true"</span>)     <span class="co"># Handle multi-line text fields</span></span>
+<span id="cb9-86"><a href="#cb9-86"></a>    .option(<span class="st">"escape"</span>, <span class="st">"</span><span class="ch">\"</span><span class="st">"</span>)          <span class="co"># Handle embedded quotes</span></span>
+<span id="cb9-87"><a href="#cb9-87"></a>    .csv(csv_path)</span>
+<span id="cb9-88"><a href="#cb9-88"></a>)</span>
+<span id="cb9-89"><a href="#cb9-89"></a></span>
+<span id="cb9-90"><a href="#cb9-90"></a><span class="co"># Confirm load success</span></span>
+<span id="cb9-91"><a href="#cb9-91"></a><span class="bu">print</span>(<span class="st">"✅ Dataset successfully loaded!"</span>)</span>
+<span id="cb9-92"><a href="#cb9-92"></a>df.printSchema()</span>
+<span id="cb9-93"><a href="#cb9-93"></a>df.show(<span class="dv">5</span>, truncate<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb9-94"><a href="#cb9-94"></a></span>
+<span id="cb9-95"><a href="#cb9-95"></a><span class="in">```</span></span>
+<span id="cb9-96"><a href="#cb9-96"></a></span>
+<span id="cb9-97"><a href="#cb9-97"></a><span class="fu"># Data Cleaning and Typecasting</span></span>
+<span id="cb9-98"><a href="#cb9-98"></a></span>
+<span id="cb9-99"><a href="#cb9-99"></a>In this step, we will clean and typecast key columns in our dataset to prepare it for analysis.  </span>
+<span id="cb9-100"><a href="#cb9-100"></a>The process involves identifying relevant columns, converting data types, and handling missing values appropriately.</span>
+<span id="cb9-101"><a href="#cb9-101"></a></span>
+<span id="cb9-102"><a href="#cb9-102"></a><span class="fu">## Typecast Key Columns:</span></span>
+<span id="cb9-103"><a href="#cb9-103"></a></span>
+<span id="cb9-106"><a href="#cb9-106"></a><span class="in">```{python}</span></span>
+<span id="cb9-107"><a href="#cb9-107"></a><span class="co"># Import necessary libraries</span></span>
+<span id="cb9-108"><a href="#cb9-108"></a><span class="im">from</span> pyspark.sql <span class="im">import</span> functions <span class="im">as</span> F, types <span class="im">as</span> T</span>
+<span id="cb9-109"><a href="#cb9-109"></a><span class="im">import</span> os</span>
+<span id="cb9-110"><a href="#cb9-110"></a></span>
+<span id="cb9-111"><a href="#cb9-111"></a><span class="co">#  Select and typecast key columns</span></span>
+<span id="cb9-112"><a href="#cb9-112"></a><span class="co"># Convert salary fields to numeric values for later analysis</span></span>
+<span id="cb9-113"><a href="#cb9-113"></a>clean_df <span class="op">=</span> (</span>
+<span id="cb9-114"><a href="#cb9-114"></a>    df.withColumn(<span class="st">"SALARY_FROM"</span>, F.col(<span class="st">"SALARY_FROM"</span>).cast(T.DoubleType()))</span>
+<span id="cb9-115"><a href="#cb9-115"></a>      .withColumn(<span class="st">"SALARY_TO"</span>, F.col(<span class="st">"SALARY_TO"</span>).cast(T.DoubleType()))</span>
+<span id="cb9-116"><a href="#cb9-116"></a>      .withColumn(<span class="st">"MAX_YEARS_EXPERIENCE"</span>, F.col(<span class="st">"MAX_YEARS_EXPERIENCE"</span>).cast(T.DoubleType()))</span>
+<span id="cb9-117"><a href="#cb9-117"></a>)</span>
+<span id="cb9-118"><a href="#cb9-118"></a><span class="co"># Handle missing values</span></span>
+<span id="cb9-119"><a href="#cb9-119"></a><span class="co"># Fill missing numeric values with 0 (or another placeholder if desired)</span></span>
+<span id="cb9-120"><a href="#cb9-120"></a>clean_df <span class="op">=</span> clean_df.fillna({<span class="st">"SALARY_FROM"</span>: <span class="dv">0</span>, <span class="st">"SALARY_TO"</span>: <span class="dv">0</span>, <span class="st">"MAX_YEARS_EXPERIENCE"</span>: <span class="dv">0</span>})</span>
+<span id="cb9-121"><a href="#cb9-121"></a></span>
+<span id="cb9-122"><a href="#cb9-122"></a><span class="co"># Optional: Calculate average salary column for convenience</span></span>
+<span id="cb9-123"><a href="#cb9-123"></a>clean_df <span class="op">=</span> clean_df.withColumn(</span>
+<span id="cb9-124"><a href="#cb9-124"></a>    <span class="st">"AVERAGE_SALARY"</span>,</span>
+<span id="cb9-125"><a href="#cb9-125"></a>    (F.col(<span class="st">"SALARY_FROM"</span>) <span class="op">+</span> F.col(<span class="st">"SALARY_TO"</span>)) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb9-126"><a href="#cb9-126"></a>)</span>
+<span id="cb9-127"><a href="#cb9-127"></a></span>
+<span id="cb9-128"><a href="#cb9-128"></a><span class="co"># Show a quick sample</span></span>
+<span id="cb9-129"><a href="#cb9-129"></a>clean_df.select(<span class="st">"SALARY_FROM"</span>, <span class="st">"SALARY_TO"</span>, <span class="st">"AVERAGE_SALARY"</span>, <span class="st">"MAX_YEARS_EXPERIENCE"</span>).show(<span class="dv">5</span>, truncate<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb9-130"><a href="#cb9-130"></a></span>
+<span id="cb9-131"><a href="#cb9-131"></a><span class="in">```</span></span>
+<span id="cb9-132"><a href="#cb9-132"></a></span>
+<span id="cb9-133"><a href="#cb9-133"></a><span class="fu">## Save the Cleaned Dataset</span></span>
+<span id="cb9-134"><a href="#cb9-134"></a>Now that the dataset has been cleaned and typecasted, we will save it as a new CSV file for later use.</span>
+<span id="cb9-135"><a href="#cb9-135"></a></span>
+<span id="cb9-136"><a href="#cb9-136"></a></span>
+<span id="cb9-139"><a href="#cb9-139"></a><span class="in">```{python}</span></span>
+<span id="cb9-140"><a href="#cb9-140"></a><span class="co"># Save cleaned dataset safely</span></span>
+<span id="cb9-141"><a href="#cb9-141"></a><span class="im">import</span> os, glob, shutil</span>
+<span id="cb9-142"><a href="#cb9-142"></a></span>
+<span id="cb9-143"><a href="#cb9-143"></a><span class="co"># keep only the columns needed downstream </span></span>
+<span id="cb9-144"><a href="#cb9-144"></a>cols_to_keep <span class="op">=</span> [c <span class="cf">for</span> c <span class="kw">in</span> [</span>
+<span id="cb9-145"><a href="#cb9-145"></a>    <span class="st">"SALARY_FROM"</span>,<span class="st">"SALARY_TO"</span>,<span class="st">"AVERAGE_SALARY"</span>,<span class="st">"MAX_YEARS_EXPERIENCE"</span>,</span>
+<span id="cb9-146"><a href="#cb9-146"></a>    <span class="co"># "EDUCATION_NAME","REMOTE_TYPE_NAME","LOT_V6_SPECIALIZED_OCCUPATION_NAME",</span></span>
+<span id="cb9-147"><a href="#cb9-147"></a>] <span class="cf">if</span> c <span class="kw">in</span> clean_df.columns]</span>
+<span id="cb9-148"><a href="#cb9-148"></a></span>
+<span id="cb9-149"><a href="#cb9-149"></a>tmp_dir   <span class="op">=</span> <span class="st">"_tmp_clean_csv"</span></span>
+<span id="cb9-150"><a href="#cb9-150"></a>final_csv <span class="op">=</span> <span class="st">"data/lightcast_cleaned.csv"</span></span>
+<span id="cb9-151"><a href="#cb9-151"></a></span>
+<span id="cb9-152"><a href="#cb9-152"></a><span class="co"># CSV part from Spark</span></span>
+<span id="cb9-153"><a href="#cb9-153"></a>(clean_df</span>
+<span id="cb9-154"><a href="#cb9-154"></a> .select(cols_to_keep) <span class="cf">if</span> cols_to_keep <span class="cf">else</span> clean_df</span>
+<span id="cb9-155"><a href="#cb9-155"></a>).coalesce(<span class="dv">1</span>).write.mode(<span class="st">"overwrite"</span>).option(<span class="st">"header"</span>,<span class="st">"true"</span>).csv(tmp_dir)</span>
+<span id="cb9-156"><a href="#cb9-156"></a></span>
+<span id="cb9-157"><a href="#cb9-157"></a><span class="co"># Move part-*.csv to final path</span></span>
+<span id="cb9-158"><a href="#cb9-158"></a>part_files <span class="op">=</span> glob.glob(os.path.join(tmp_dir, <span class="st">"part-*.csv"</span>))</span>
+<span id="cb9-159"><a href="#cb9-159"></a><span class="cf">if</span> <span class="kw">not</span> part_files:</span>
+<span id="cb9-160"><a href="#cb9-160"></a>    <span class="cf">raise</span> <span class="pp">RuntimeError</span>(<span class="st">"No part file found after Spark write."</span>)</span>
+<span id="cb9-161"><a href="#cb9-161"></a><span class="cf">if</span> os.path.exists(final_csv):</span>
+<span id="cb9-162"><a href="#cb9-162"></a>    os.remove(final_csv)</span>
+<span id="cb9-163"><a href="#cb9-163"></a>shutil.move(part_files[<span class="dv">0</span>], final_csv)</span>
+<span id="cb9-164"><a href="#cb9-164"></a>shutil.rmtree(tmp_dir, ignore_errors<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb9-165"><a href="#cb9-165"></a></span>
+<span id="cb9-166"><a href="#cb9-166"></a><span class="bu">print</span>(<span class="st">"✅ Cleaned dataset saved."</span>)</span>
+<span id="cb9-167"><a href="#cb9-167"></a><span class="bu">print</span>(<span class="ss">f"📁 File location: </span><span class="sc">{</span>final_csv<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb9-168"><a href="#cb9-168"></a></span>
+<span id="cb9-169"><a href="#cb9-169"></a></span>
+<span id="cb9-170"><a href="#cb9-170"></a><span class="in">```</span></span>
+<span id="cb9-171"><a href="#cb9-171"></a></span>
+<span id="cb9-172"><a href="#cb9-172"></a><span class="fu"># Salary by Education Level</span></span>
+<span id="cb9-173"><a href="#cb9-173"></a></span>
+<span id="cb9-174"><a href="#cb9-174"></a></span>
+<span id="cb9-177"><a href="#cb9-177"></a><span class="in">```{python}</span></span>
+<span id="cb9-178"><a href="#cb9-178"></a><span class="co"># --- Salary by Education Level -----------------------------------------------</span></span>
+<span id="cb9-179"><a href="#cb9-179"></a><span class="im">from</span> pyspark.sql <span class="im">import</span> functions <span class="im">as</span> F</span>
+<span id="cb9-180"><a href="#cb9-180"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb9-181"><a href="#cb9-181"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb9-182"><a href="#cb9-182"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb9-183"><a href="#cb9-183"></a><span class="im">from</span> IPython.display <span class="im">import</span> Markdown, display</span>
+<span id="cb9-184"><a href="#cb9-184"></a></span>
+<span id="cb9-185"><a href="#cb9-185"></a><span class="co"># --- 1. Identify the education column dynamically ---</span></span>
+<span id="cb9-186"><a href="#cb9-186"></a>edu_col <span class="op">=</span> <span class="bu">next</span>(</span>
+<span id="cb9-187"><a href="#cb9-187"></a>    (c <span class="cf">for</span> c <span class="kw">in</span> [<span class="st">"EDUCATION_LEVELS_NAME"</span>, <span class="st">"MIN_EDULEVELS_NAME"</span>, <span class="st">"MAX_EDULEVELS_NAME"</span>, <span class="st">"EDUCATION_LEVELS"</span>]</span>
+<span id="cb9-188"><a href="#cb9-188"></a>     <span class="cf">if</span> c <span class="kw">in</span> clean_df.columns),</span>
+<span id="cb9-189"><a href="#cb9-189"></a>    <span class="va">None</span></span>
+<span id="cb9-190"><a href="#cb9-190"></a>)</span>
+<span id="cb9-191"><a href="#cb9-191"></a></span>
+<span id="cb9-192"><a href="#cb9-192"></a><span class="cf">if</span> edu_col <span class="kw">is</span> <span class="va">None</span>:</span>
+<span id="cb9-193"><a href="#cb9-193"></a>    <span class="cf">raise</span> <span class="pp">ValueError</span>(<span class="st">"No education-related column found in the dataset."</span>)</span>
+<span id="cb9-194"><a href="#cb9-194"></a></span>
+<span id="cb9-195"><a href="#cb9-195"></a><span class="co"># --- 2. Prepare a smaller sample for visualization ---</span></span>
+<span id="cb9-196"><a href="#cb9-196"></a>sdf <span class="op">=</span> clean_df.select(</span>
+<span id="cb9-197"><a href="#cb9-197"></a>    F.col(edu_col).alias(<span class="st">"EDUCATION"</span>),</span>
+<span id="cb9-198"><a href="#cb9-198"></a>    <span class="st">"MAX_YEARS_EXPERIENCE"</span>,</span>
+<span id="cb9-199"><a href="#cb9-199"></a>    <span class="st">"AVERAGE_SALARY"</span></span>
+<span id="cb9-200"><a href="#cb9-200"></a>)</span>
+<span id="cb9-201"><a href="#cb9-201"></a></span>
+<span id="cb9-202"><a href="#cb9-202"></a><span class="co"># --- 3. Convert to Pandas for visualization ---</span></span>
+<span id="cb9-203"><a href="#cb9-203"></a>pdf <span class="op">=</span> sdf.sample(<span class="fl">0.1</span>, seed<span class="op">=</span><span class="dv">42</span>).toPandas()</span>
+<span id="cb9-204"><a href="#cb9-204"></a></span>
+<span id="cb9-205"><a href="#cb9-205"></a><span class="co"># --- 4. Group education levels into two categories ---</span></span>
+<span id="cb9-206"><a href="#cb9-206"></a><span class="kw">def</span> categorize_education(edu):</span>
+<span id="cb9-207"><a href="#cb9-207"></a>    <span class="cf">if</span> pd.isna(edu):</span>
+<span id="cb9-208"><a href="#cb9-208"></a>        <span class="cf">return</span> <span class="st">"Bachelor’s or lower"</span></span>
+<span id="cb9-209"><a href="#cb9-209"></a>    edu <span class="op">=</span> edu.lower()</span>
+<span id="cb9-210"><a href="#cb9-210"></a>    <span class="cf">if</span> <span class="bu">any</span>(x <span class="kw">in</span> edu <span class="cf">for</span> x <span class="kw">in</span> [<span class="st">"bachelor"</span>, <span class="st">"associate"</span>, <span class="st">"ged"</span>, <span class="st">"no education"</span>]):</span>
+<span id="cb9-211"><a href="#cb9-211"></a>        <span class="cf">return</span> <span class="st">"Bachelor’s or lower"</span></span>
+<span id="cb9-212"><a href="#cb9-212"></a>    <span class="cf">elif</span> <span class="bu">any</span>(x <span class="kw">in</span> edu <span class="cf">for</span> x <span class="kw">in</span> [<span class="st">"master"</span>, <span class="st">"phd"</span>, <span class="st">"doctor"</span>, <span class="st">"professional"</span>]):</span>
+<span id="cb9-213"><a href="#cb9-213"></a>        <span class="cf">return</span> <span class="st">"Master’s or PhD"</span></span>
+<span id="cb9-214"><a href="#cb9-214"></a>    <span class="cf">else</span>:</span>
+<span id="cb9-215"><a href="#cb9-215"></a>        <span class="cf">return</span> <span class="st">"Bachelor’s or lower"</span></span>
+<span id="cb9-216"><a href="#cb9-216"></a></span>
+<span id="cb9-217"><a href="#cb9-217"></a>pdf[<span class="st">"Education_Group"</span>] <span class="op">=</span> pdf[<span class="st">"EDUCATION"</span>].<span class="bu">apply</span>(categorize_education)</span>
+<span id="cb9-218"><a href="#cb9-218"></a></span>
+<span id="cb9-219"><a href="#cb9-219"></a><span class="co"># --- 5. Helper functions for clean visuals and inline text ---</span></span>
+<span id="cb9-220"><a href="#cb9-220"></a><span class="kw">def</span> explain(title, lines):</span>
+<span id="cb9-221"><a href="#cb9-221"></a>    <span class="co">"""Render markdown explanations below each chart."""</span></span>
+<span id="cb9-222"><a href="#cb9-222"></a>    display(Markdown(<span class="ss">f"**</span><span class="sc">{</span>title<span class="sc">}</span><span class="ss">**  </span><span class="ch">\n</span><span class="ss">"</span> <span class="op">+</span> <span class="st">"  </span><span class="ch">\n</span><span class="st">"</span>.join(lines)))</span>
+<span id="cb9-223"><a href="#cb9-223"></a></span>
+<span id="cb9-224"><a href="#cb9-224"></a><span class="kw">def</span> jitter(x, j<span class="op">=</span><span class="fl">0.15</span>):</span>
+<span id="cb9-225"><a href="#cb9-225"></a>    <span class="co">"""Add small noise to reduce point overlap."""</span></span>
+<span id="cb9-226"><a href="#cb9-226"></a>    x <span class="op">=</span> np.asarray(pd.Series(x).fillna(<span class="dv">0</span>))</span>
+<span id="cb9-227"><a href="#cb9-227"></a>    <span class="cf">return</span> x <span class="op">+</span> np.random.uniform(<span class="op">-</span>j, j, size<span class="op">=</span><span class="bu">len</span>(x))</span>
+<span id="cb9-228"><a href="#cb9-228"></a></span>
+<span id="cb9-229"><a href="#cb9-229"></a><span class="co"># --- 6. Explanations for each group ---</span></span>
+<span id="cb9-230"><a href="#cb9-230"></a>scatter_notes <span class="op">=</span> {</span>
+<span id="cb9-231"><a href="#cb9-231"></a>    <span class="st">"Bachelor’s or lower"</span>: [</span>
+<span id="cb9-232"><a href="#cb9-232"></a>        <span class="st">"Salaries increase slightly with experience, but most jobs cluster at low experience with wide pay variation."</span>,</span>
+<span id="cb9-233"><a href="#cb9-233"></a>        <span class="st">"Several high-pay outliers at minimal experience suggest niche, high-demand roles."</span></span>
+<span id="cb9-234"><a href="#cb9-234"></a>    ],</span>
+<span id="cb9-235"><a href="#cb9-235"></a>    <span class="st">"Master’s or PhD"</span>: [</span>
+<span id="cb9-236"><a href="#cb9-236"></a>        <span class="st">"Advanced-degree roles show higher average salaries, especially beyond ~5 years of experience."</span>,</span>
+<span id="cb9-237"><a href="#cb9-237"></a>        <span class="st">"Variation remains wide, indicating experience alone doesn’t fully explain pay differences."</span></span>
+<span id="cb9-238"><a href="#cb9-238"></a>    ],</span>
+<span id="cb9-239"><a href="#cb9-239"></a>}</span>
+<span id="cb9-240"><a href="#cb9-240"></a></span>
+<span id="cb9-241"><a href="#cb9-241"></a>hist_notes <span class="op">=</span> {</span>
+<span id="cb9-242"><a href="#cb9-242"></a>    <span class="st">"Bachelor’s or lower"</span>: [</span>
+<span id="cb9-243"><a href="#cb9-243"></a>        <span class="st">"The distribution is strongly right-skewed with most postings in lower bands and a long high-pay tail."</span>,</span>
+<span id="cb9-244"><a href="#cb9-244"></a>        <span class="st">"A spike near zero indicates missing or placeholder salaries that should be filtered for clean stats."</span></span>
+<span id="cb9-245"><a href="#cb9-245"></a>    ],</span>
+<span id="cb9-246"><a href="#cb9-246"></a>    <span class="st">"Master’s or PhD"</span>: [</span>
+<span id="cb9-247"><a href="#cb9-247"></a>        <span class="st">"The center of the distribution is higher than the bachelor’s group, reflecting an earnings premium."</span>,</span>
+<span id="cb9-248"><a href="#cb9-248"></a>        <span class="st">"A longer upper tail suggests specialized or lead roles command top-end salaries."</span></span>
+<span id="cb9-249"><a href="#cb9-249"></a>    ],</span>
+<span id="cb9-250"><a href="#cb9-250"></a>}</span>
+<span id="cb9-251"><a href="#cb9-251"></a></span>
+<span id="cb9-252"><a href="#cb9-252"></a><span class="co"># --- 7. Scatter plots with explanations ---</span></span>
+<span id="cb9-253"><a href="#cb9-253"></a><span class="cf">for</span> group <span class="kw">in</span> pdf[<span class="st">"Education_Group"</span>].unique():</span>
+<span id="cb9-254"><a href="#cb9-254"></a>    subset <span class="op">=</span> pdf[pdf[<span class="st">"Education_Group"</span>] <span class="op">==</span> group]</span>
+<span id="cb9-255"><a href="#cb9-255"></a></span>
+<span id="cb9-256"><a href="#cb9-256"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">8</span>,<span class="dv">5</span>))</span>
+<span id="cb9-257"><a href="#cb9-257"></a>    plt.scatter(jitter(subset[<span class="st">"MAX_YEARS_EXPERIENCE"</span>]), subset[<span class="st">"AVERAGE_SALARY"</span>], s<span class="op">=</span><span class="dv">15</span>, alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
+<span id="cb9-258"><a href="#cb9-258"></a>    plt.title(<span class="ss">f"Salary vs. Experience — </span><span class="sc">{</span>group<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb9-259"><a href="#cb9-259"></a>    plt.xlabel(<span class="st">"Max Years Experience (jittered)"</span>)</span>
+<span id="cb9-260"><a href="#cb9-260"></a>    plt.ylabel(<span class="st">"Average Salary"</span>)</span>
+<span id="cb9-261"><a href="#cb9-261"></a>    plt.tight_layout()</span>
+<span id="cb9-262"><a href="#cb9-262"></a>    plt.show()</span>
+<span id="cb9-263"><a href="#cb9-263"></a></span>
+<span id="cb9-264"><a href="#cb9-264"></a>    explain(<span class="ss">f"Salary vs. Experience — </span><span class="sc">{</span>group<span class="sc">}</span><span class="ss">"</span>, scatter_notes.get(group, [</span>
+<span id="cb9-265"><a href="#cb9-265"></a>        <span class="st">"Salaries show a weak positive relationship with experience."</span>,</span>
+<span id="cb9-266"><a href="#cb9-266"></a>        <span class="st">"Wide dispersion suggests role and industry strongly influence pay."</span></span>
+<span id="cb9-267"><a href="#cb9-267"></a>    ]))</span>
+<span id="cb9-268"><a href="#cb9-268"></a></span>
+<span id="cb9-269"><a href="#cb9-269"></a><span class="co"># --- 8. Histograms with explanations ---</span></span>
+<span id="cb9-270"><a href="#cb9-270"></a><span class="cf">for</span> group <span class="kw">in</span> pdf[<span class="st">"Education_Group"</span>].unique():</span>
+<span id="cb9-271"><a href="#cb9-271"></a>    subset <span class="op">=</span> pdf.loc[pdf[<span class="st">"Education_Group"</span>] <span class="op">==</span> group, <span class="st">"AVERAGE_SALARY"</span>].dropna()</span>
+<span id="cb9-272"><a href="#cb9-272"></a></span>
+<span id="cb9-273"><a href="#cb9-273"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">8</span>,<span class="dv">5</span>))</span>
+<span id="cb9-274"><a href="#cb9-274"></a>    counts, edges, _ <span class="op">=</span> plt.hist(subset, bins<span class="op">=</span><span class="dv">30</span>, density<span class="op">=</span><span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.7</span>)</span>
+<span id="cb9-275"><a href="#cb9-275"></a>    centers <span class="op">=</span> (edges[:<span class="op">-</span><span class="dv">1</span>] <span class="op">+</span> edges[<span class="dv">1</span>:]) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb9-276"><a href="#cb9-276"></a>    smooth <span class="op">=</span> pd.Series(counts).rolling(window<span class="op">=</span><span class="dv">3</span>, center<span class="op">=</span><span class="va">True</span>, min_periods<span class="op">=</span><span class="dv">1</span>).mean()</span>
+<span id="cb9-277"><a href="#cb9-277"></a>    plt.plot(centers, smooth, linewidth<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb9-278"><a href="#cb9-278"></a>    plt.title(<span class="ss">f"Salary Distribution — </span><span class="sc">{</span>group<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb9-279"><a href="#cb9-279"></a>    plt.xlabel(<span class="st">"Average Salary"</span>)</span>
+<span id="cb9-280"><a href="#cb9-280"></a>    plt.ylabel(<span class="st">"Density"</span>)</span>
+<span id="cb9-281"><a href="#cb9-281"></a>    plt.tight_layout()</span>
+<span id="cb9-282"><a href="#cb9-282"></a>    plt.show()</span>
+<span id="cb9-283"><a href="#cb9-283"></a></span>
+<span id="cb9-284"><a href="#cb9-284"></a>    explain(<span class="ss">f"Salary Distribution — </span><span class="sc">{</span>group<span class="sc">}</span><span class="ss">"</span>, hist_notes.get(group, [</span>
+<span id="cb9-285"><a href="#cb9-285"></a>        <span class="st">"Right-skewed distribution with most values in lower bands."</span>,</span>
+<span id="cb9-286"><a href="#cb9-286"></a>        <span class="st">"Upper tail indicates a subset of high-pay roles."</span></span>
+<span id="cb9-287"><a href="#cb9-287"></a>    ]))</span>
+<span id="cb9-288"><a href="#cb9-288"></a></span>
+<span id="cb9-289"><a href="#cb9-289"></a><span class="in">```</span></span>
+<span id="cb9-290"><a href="#cb9-290"></a></span>
+<span id="cb9-291"><a href="#cb9-291"></a><span class="fu"># Salary by Remote Work Type</span></span>
+<span id="cb9-292"><a href="#cb9-292"></a></span>
+<span id="cb9-293"><a href="#cb9-293"></a></span>
+<span id="cb9-296"><a href="#cb9-296"></a><span class="in">```{python}</span></span>
+<span id="cb9-297"><a href="#cb9-297"></a><span class="co"># --- Salary by Remote Work Type ----------------------------------------------</span></span>
+<span id="cb9-298"><a href="#cb9-298"></a><span class="im">from</span> pyspark.sql <span class="im">import</span> functions <span class="im">as</span> F</span>
+<span id="cb9-299"><a href="#cb9-299"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb9-300"><a href="#cb9-300"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb9-301"><a href="#cb9-301"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb9-302"><a href="#cb9-302"></a><span class="im">from</span> IPython.display <span class="im">import</span> Markdown, display</span>
+<span id="cb9-303"><a href="#cb9-303"></a></span>
+<span id="cb9-304"><a href="#cb9-304"></a><span class="co"># --- 1. Check if REMOTE_TYPE_NAME exists ---</span></span>
+<span id="cb9-305"><a href="#cb9-305"></a><span class="cf">if</span> <span class="st">"REMOTE_TYPE_NAME"</span> <span class="kw">not</span> <span class="kw">in</span> clean_df.columns:</span>
+<span id="cb9-306"><a href="#cb9-306"></a>    <span class="cf">raise</span> <span class="pp">ValueError</span>(<span class="st">"Column 'REMOTE_TYPE_NAME' not found in dataset."</span>)</span>
+<span id="cb9-307"><a href="#cb9-307"></a></span>
+<span id="cb9-308"><a href="#cb9-308"></a><span class="co"># --- 2. Create a simplified DataFrame for visualization ---</span></span>
+<span id="cb9-309"><a href="#cb9-309"></a>sdf <span class="op">=</span> clean_df.select(</span>
+<span id="cb9-310"><a href="#cb9-310"></a>    <span class="st">"REMOTE_TYPE_NAME"</span>,</span>
+<span id="cb9-311"><a href="#cb9-311"></a>    <span class="st">"MAX_YEARS_EXPERIENCE"</span>,</span>
+<span id="cb9-312"><a href="#cb9-312"></a>    <span class="st">"AVERAGE_SALARY"</span></span>
+<span id="cb9-313"><a href="#cb9-313"></a>)</span>
+<span id="cb9-314"><a href="#cb9-314"></a></span>
+<span id="cb9-315"><a href="#cb9-315"></a><span class="co"># --- 3. Convert to Pandas sample for plotting ---</span></span>
+<span id="cb9-316"><a href="#cb9-316"></a>pdf <span class="op">=</span> sdf.sample(<span class="fl">0.1</span>, seed<span class="op">=</span><span class="dv">42</span>).toPandas()</span>
+<span id="cb9-317"><a href="#cb9-317"></a></span>
+<span id="cb9-318"><a href="#cb9-318"></a><span class="co"># --- 4. Clean and group remote type labels ---</span></span>
+<span id="cb9-319"><a href="#cb9-319"></a><span class="kw">def</span> categorize_remote(val):</span>
+<span id="cb9-320"><a href="#cb9-320"></a>    <span class="cf">if</span> pd.isna(val) <span class="kw">or</span> <span class="bu">str</span>(val).strip() <span class="op">==</span> <span class="st">""</span>:</span>
+<span id="cb9-321"><a href="#cb9-321"></a>        <span class="cf">return</span> <span class="st">"Onsite"</span></span>
+<span id="cb9-322"><a href="#cb9-322"></a>    val <span class="op">=</span> val.lower()</span>
+<span id="cb9-323"><a href="#cb9-323"></a>    <span class="cf">if</span> <span class="st">"remote"</span> <span class="kw">in</span> val:</span>
+<span id="cb9-324"><a href="#cb9-324"></a>        <span class="cf">return</span> <span class="st">"Remote"</span></span>
+<span id="cb9-325"><a href="#cb9-325"></a>    <span class="cf">elif</span> <span class="st">"hybrid"</span> <span class="kw">in</span> val:</span>
+<span id="cb9-326"><a href="#cb9-326"></a>        <span class="cf">return</span> <span class="st">"Hybrid"</span></span>
+<span id="cb9-327"><a href="#cb9-327"></a>    <span class="cf">else</span>:</span>
+<span id="cb9-328"><a href="#cb9-328"></a>        <span class="cf">return</span> <span class="st">"Onsite"</span></span>
+<span id="cb9-329"><a href="#cb9-329"></a></span>
+<span id="cb9-330"><a href="#cb9-330"></a>pdf[<span class="st">"Remote_Type_Group"</span>] <span class="op">=</span> pdf[<span class="st">"REMOTE_TYPE_NAME"</span>].<span class="bu">apply</span>(categorize_remote)</span>
+<span id="cb9-331"><a href="#cb9-331"></a></span>
+<span id="cb9-332"><a href="#cb9-332"></a><span class="co"># --- 5. Helper functions for inline explanations ---</span></span>
+<span id="cb9-333"><a href="#cb9-333"></a><span class="kw">def</span> explain(title, lines):</span>
+<span id="cb9-334"><a href="#cb9-334"></a>    display(Markdown(<span class="ss">f"**</span><span class="sc">{</span>title<span class="sc">}</span><span class="ss">**  </span><span class="ch">\n</span><span class="ss">"</span> <span class="op">+</span> <span class="st">"  </span><span class="ch">\n</span><span class="st">"</span>.join(lines)))</span>
+<span id="cb9-335"><a href="#cb9-335"></a></span>
+<span id="cb9-336"><a href="#cb9-336"></a><span class="kw">def</span> jitter(x, j<span class="op">=</span><span class="fl">0.15</span>):</span>
+<span id="cb9-337"><a href="#cb9-337"></a>    x <span class="op">=</span> np.asarray(pd.Series(x).fillna(<span class="dv">0</span>))</span>
+<span id="cb9-338"><a href="#cb9-338"></a>    <span class="cf">return</span> x <span class="op">+</span> np.random.uniform(<span class="op">-</span>j, j, size<span class="op">=</span><span class="bu">len</span>(x))</span>
+<span id="cb9-339"><a href="#cb9-339"></a></span>
+<span id="cb9-340"><a href="#cb9-340"></a><span class="co"># --- 6. Define explanations ---</span></span>
+<span id="cb9-341"><a href="#cb9-341"></a>scatter_notes <span class="op">=</span> {</span>
+<span id="cb9-342"><a href="#cb9-342"></a>    <span class="st">"Remote"</span>: [</span>
+<span id="cb9-343"><a href="#cb9-343"></a>        <span class="st">"Remote roles generally offer higher salaries across experience levels, reflecting competition for digital and distributed skills."</span>,</span>
+<span id="cb9-344"><a href="#cb9-344"></a>        <span class="st">"Salary spread is wider for remote jobs, suggesting varying levels of specialization and seniority."</span></span>
+<span id="cb9-345"><a href="#cb9-345"></a>    ],</span>
+<span id="cb9-346"><a href="#cb9-346"></a>    <span class="st">"Hybrid"</span>: [</span>
+<span id="cb9-347"><a href="#cb9-347"></a>        <span class="st">"Hybrid positions show moderate salaries, often balancing flexibility with in-office expectations."</span>,</span>
+<span id="cb9-348"><a href="#cb9-348"></a>        <span class="st">"Salaries increase gradually with experience, but few extreme outliers exist compared to remote roles."</span></span>
+<span id="cb9-349"><a href="#cb9-349"></a>    ],</span>
+<span id="cb9-350"><a href="#cb9-350"></a>    <span class="st">"Onsite"</span>: [</span>
+<span id="cb9-351"><a href="#cb9-351"></a>        <span class="st">"Onsite roles tend to cluster around lower-to-mid salary ranges with limited variation."</span>,</span>
+<span id="cb9-352"><a href="#cb9-352"></a>        <span class="st">"Experience appears to have a smaller impact on salary for onsite work compared to remote or hybrid."</span></span>
+<span id="cb9-353"><a href="#cb9-353"></a>    ]</span>
+<span id="cb9-354"><a href="#cb9-354"></a>}</span>
+<span id="cb9-355"><a href="#cb9-355"></a></span>
+<span id="cb9-356"><a href="#cb9-356"></a>hist_notes <span class="op">=</span> {</span>
+<span id="cb9-357"><a href="#cb9-357"></a>    <span class="st">"Remote"</span>: [</span>
+<span id="cb9-358"><a href="#cb9-358"></a>        <span class="st">"Remote salary distributions are slightly right-skewed, with many postings above the median salary level."</span>,</span>
+<span id="cb9-359"><a href="#cb9-359"></a>        <span class="st">"This supports the idea that remote opportunities attract higher-paying, skill-intensive jobs."</span></span>
+<span id="cb9-360"><a href="#cb9-360"></a>    ],</span>
+<span id="cb9-361"><a href="#cb9-361"></a>    <span class="st">"Hybrid"</span>: [</span>
+<span id="cb9-362"><a href="#cb9-362"></a>        <span class="st">"Hybrid roles show a balanced salary distribution with fewer high-end positions."</span>,</span>
+<span id="cb9-363"><a href="#cb9-363"></a>        <span class="st">"The curve suggests a steady middle-income concentration across job types."</span></span>
+<span id="cb9-364"><a href="#cb9-364"></a>    ],</span>
+<span id="cb9-365"><a href="#cb9-365"></a>    <span class="st">"Onsite"</span>: [</span>
+<span id="cb9-366"><a href="#cb9-366"></a>        <span class="st">"Onsite roles show the lowest median salaries and the strongest right-skew, with most salaries concentrated near the lower end."</span>,</span>
+<span id="cb9-367"><a href="#cb9-367"></a>        <span class="st">"The distribution confirms that traditional in-person jobs tend to offer less pay than hybrid or remote options."</span></span>
+<span id="cb9-368"><a href="#cb9-368"></a>    ]</span>
+<span id="cb9-369"><a href="#cb9-369"></a>}</span>
+<span id="cb9-370"><a href="#cb9-370"></a></span>
+<span id="cb9-371"><a href="#cb9-371"></a><span class="co"># --- 7. Scatter plots for each group ---</span></span>
+<span id="cb9-372"><a href="#cb9-372"></a><span class="cf">for</span> group <span class="kw">in</span> pdf[<span class="st">"Remote_Type_Group"</span>].unique():</span>
+<span id="cb9-373"><a href="#cb9-373"></a>    subset <span class="op">=</span> pdf[pdf[<span class="st">"Remote_Type_Group"</span>] <span class="op">==</span> group]</span>
+<span id="cb9-374"><a href="#cb9-374"></a></span>
+<span id="cb9-375"><a href="#cb9-375"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">8</span>,<span class="dv">5</span>))</span>
+<span id="cb9-376"><a href="#cb9-376"></a>    plt.scatter(jitter(subset[<span class="st">"MAX_YEARS_EXPERIENCE"</span>]), subset[<span class="st">"AVERAGE_SALARY"</span>], s<span class="op">=</span><span class="dv">15</span>, alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
+<span id="cb9-377"><a href="#cb9-377"></a>    plt.title(<span class="ss">f"Salary vs. Experience — </span><span class="sc">{</span>group<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb9-378"><a href="#cb9-378"></a>    plt.xlabel(<span class="st">"Max Years Experience (jittered)"</span>)</span>
+<span id="cb9-379"><a href="#cb9-379"></a>    plt.ylabel(<span class="st">"Average Salary"</span>)</span>
+<span id="cb9-380"><a href="#cb9-380"></a>    plt.tight_layout()</span>
+<span id="cb9-381"><a href="#cb9-381"></a>    plt.show()</span>
+<span id="cb9-382"><a href="#cb9-382"></a></span>
+<span id="cb9-383"><a href="#cb9-383"></a>    explain(<span class="ss">f"Salary vs. Experience — </span><span class="sc">{</span>group<span class="sc">}</span><span class="ss">"</span>, scatter_notes.get(group, [</span>
+<span id="cb9-384"><a href="#cb9-384"></a>        <span class="st">"Salaries show some relationship with experience."</span>,</span>
+<span id="cb9-385"><a href="#cb9-385"></a>        <span class="st">"Variation across remote types suggests differences in job flexibility and demand."</span></span>
+<span id="cb9-386"><a href="#cb9-386"></a>    ]))</span>
+<span id="cb9-387"><a href="#cb9-387"></a></span>
+<span id="cb9-388"><a href="#cb9-388"></a><span class="co"># --- 8. Histogram plots for each group ---</span></span>
+<span id="cb9-389"><a href="#cb9-389"></a><span class="cf">for</span> group <span class="kw">in</span> pdf[<span class="st">"Remote_Type_Group"</span>].unique():</span>
+<span id="cb9-390"><a href="#cb9-390"></a>    subset <span class="op">=</span> pdf.loc[pdf[<span class="st">"Remote_Type_Group"</span>] <span class="op">==</span> group, <span class="st">"AVERAGE_SALARY"</span>].dropna()</span>
+<span id="cb9-391"><a href="#cb9-391"></a></span>
+<span id="cb9-392"><a href="#cb9-392"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">8</span>,<span class="dv">5</span>))</span>
+<span id="cb9-393"><a href="#cb9-393"></a>    counts, edges, _ <span class="op">=</span> plt.hist(subset, bins<span class="op">=</span><span class="dv">30</span>, density<span class="op">=</span><span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.7</span>)</span>
+<span id="cb9-394"><a href="#cb9-394"></a>    centers <span class="op">=</span> (edges[:<span class="op">-</span><span class="dv">1</span>] <span class="op">+</span> edges[<span class="dv">1</span>:]) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb9-395"><a href="#cb9-395"></a>    smooth <span class="op">=</span> pd.Series(counts).rolling(window<span class="op">=</span><span class="dv">3</span>, center<span class="op">=</span><span class="va">True</span>, min_periods<span class="op">=</span><span class="dv">1</span>).mean()</span>
+<span id="cb9-396"><a href="#cb9-396"></a>    plt.plot(centers, smooth, linewidth<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb9-397"><a href="#cb9-397"></a>    plt.title(<span class="ss">f"Salary Distribution — </span><span class="sc">{</span>group<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb9-398"><a href="#cb9-398"></a>    plt.xlabel(<span class="st">"Average Salary"</span>)</span>
+<span id="cb9-399"><a href="#cb9-399"></a>    plt.ylabel(<span class="st">"Density"</span>)</span>
+<span id="cb9-400"><a href="#cb9-400"></a>    plt.tight_layout()</span>
+<span id="cb9-401"><a href="#cb9-401"></a>    plt.show()</span>
+<span id="cb9-402"><a href="#cb9-402"></a></span>
+<span id="cb9-403"><a href="#cb9-403"></a>    explain(<span class="ss">f"Salary Distribution — </span><span class="sc">{</span>group<span class="sc">}</span><span class="ss">"</span>, hist_notes.get(group, [</span>
+<span id="cb9-404"><a href="#cb9-404"></a>        <span class="st">"The salary distribution is right-skewed with most values in lower ranges."</span>,</span>
+<span id="cb9-405"><a href="#cb9-405"></a>        <span class="st">"Higher-paying roles appear less frequently but form the upper salary tail."</span></span>
+<span id="cb9-406"><a href="#cb9-406"></a>    ]))</span>
+<span id="cb9-407"><a href="#cb9-407"></a><span class="in">```</span></span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

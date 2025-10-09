@@ -280,3 +280,119 @@ for group in pdf["Education_Group"].unique():
     ]))
 
 ```
+
+# Salary by Remote Work Type
+
+
+```{python}
+# Salary by Remote Work Type 
+from pyspark.sql import functions as F
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+from IPython.display import Markdown, display
+
+# --- 1. Check if REMOTE_TYPE_NAME exists ---
+if "REMOTE_TYPE_NAME" not in clean_df.columns:
+    raise ValueError("Column 'REMOTE_TYPE_NAME' not found in dataset.")
+
+# --- 2. Create a simplified DataFrame for visualization ---
+sdf = clean_df.select(
+    "REMOTE_TYPE_NAME",
+    "MAX_YEARS_EXPERIENCE",
+    "AVERAGE_SALARY"
+)
+
+# --- 3. Convert to Pandas sample for plotting ---
+pdf = sdf.sample(0.1, seed=42).toPandas()
+
+# --- 4. Clean and group remote type labels ---
+def categorize_remote(val):
+    if pd.isna(val) or str(val).strip() == "":
+        return "Onsite"
+    val = val.lower()
+    if "remote" in val:
+        return "Remote"
+    elif "hybrid" in val:
+        return "Hybrid"
+    else:
+        return "Onsite"
+
+pdf["Remote_Type_Group"] = pdf["REMOTE_TYPE_NAME"].apply(categorize_remote)
+
+# --- 5. Helper functions for inline explanations ---
+def explain(title, lines):
+    display(Markdown(f"**{title}**  \n" + "  \n".join(lines)))
+
+def jitter(x, j=0.15):
+    x = np.asarray(pd.Series(x).fillna(0))
+    return x + np.random.uniform(-j, j, size=len(x))
+
+# --- 6. Define explanations ---
+scatter_notes = {
+    "Remote": [
+        "Remote roles generally offer higher salaries across experience levels, reflecting competition for digital and distributed skills.",
+        "Salary spread is wider for remote jobs, suggesting varying levels of specialization and seniority."
+    ],
+    "Hybrid": [
+        "Hybrid positions show moderate salaries, often balancing flexibility with in-office expectations.",
+        "Salaries increase gradually with experience, but few extreme outliers exist compared to remote roles."
+    ],
+    "Onsite": [
+        "Onsite roles tend to cluster around lower-to-mid salary ranges with limited variation.",
+        "Experience appears to have a smaller impact on salary for onsite work compared to remote or hybrid."
+    ]
+}
+
+hist_notes = {
+    "Remote": [
+        "Remote salary distributions are slightly right-skewed, with many postings above the median salary level.",
+        "This supports the idea that remote opportunities attract higher-paying, skill-intensive jobs."
+    ],
+    "Hybrid": [
+        "Hybrid roles show a balanced salary distribution with fewer high-end positions.",
+        "The curve suggests a steady middle-income concentration across job types."
+    ],
+    "Onsite": [
+        "Onsite roles show the lowest median salaries and the strongest right-skew, with most salaries concentrated near the lower end.",
+        "The distribution confirms that traditional in-person jobs tend to offer less pay than hybrid or remote options."
+    ]
+}
+
+# --- 7. Scatter plots for each group ---
+for group in pdf["Remote_Type_Group"].unique():
+    subset = pdf[pdf["Remote_Type_Group"] == group]
+
+    plt.figure(figsize=(8,5))
+    plt.scatter(jitter(subset["MAX_YEARS_EXPERIENCE"]), subset["AVERAGE_SALARY"], s=15, alpha=0.6)
+    plt.title(f"Salary vs. Experience — {group}")
+    plt.xlabel("Max Years Experience (jittered)")
+    plt.ylabel("Average Salary")
+    plt.tight_layout()
+    plt.show()
+
+    explain(f"Salary vs. Experience — {group}", scatter_notes.get(group, [
+        "Salaries show some relationship with experience.",
+        "Variation across remote types suggests differences in job flexibility and demand."
+    ]))
+
+# --- 8. Histogram plots for each group ---
+for group in pdf["Remote_Type_Group"].unique():
+    subset = pdf.loc[pdf["Remote_Type_Group"] == group, "AVERAGE_SALARY"].dropna()
+
+    plt.figure(figsize=(8,5))
+    counts, edges, _ = plt.hist(subset, bins=30, density=True, alpha=0.7)
+    centers = (edges[:-1] + edges[1:]) / 2
+    smooth = pd.Series(counts).rolling(window=3, center=True, min_periods=1).mean()
+    plt.plot(centers, smooth, linewidth=2)
+    plt.title(f"Salary Distribution — {group}")
+    plt.xlabel("Average Salary")
+    plt.ylabel("Density")
+    plt.tight_layout()
+    plt.show()
+
+    explain(f"Salary Distribution — {group}", hist_notes.get(group, [
+        "The salary distribution is right-skewed with most values in lower ranges.",
+        "Higher-paying roles appear less frequently but form the upper salary tail."
+    ]))
+```
