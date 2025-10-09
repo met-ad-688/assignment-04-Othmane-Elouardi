@@ -45,15 +45,121 @@ All visualizations are interactive, allowing you to hover and explore insights d
 # Load the Dataset
 
 ```{python}
+#| label: load-data
+#| echo: true
+#| message: false
+#| warning: false
+
 import pandas as pd
-import plotly.express as px
-from plotly import graph_objects as go
+import numpy as np
 from pathlib import Path
 
-csv_path = Path("data/lightcast_job_postings.csv")
-df = pd.read_csv(csv_path, low_memory=False)
+DATA_PATH = Path("data/lightcast_job_postings.csv")
+
+# 1) File sanity check
+assert DATA_PATH.exists(), f"CSV not found at {DATA_PATH.resolve()}"
+
+# 2) Robust read (handles wide schema + mixed types)
+df = pd.read_csv(
+    DATA_PATH,
+    low_memory=False,        # avoid dtype guessing issues
+    parse_dates=False,       # we’ll parse dates explicitly later
+    dtype=str                # keep raw text first; coerce below
+)
 
 print("✅ Dataset loaded successfully!")
-print(f"Rows: {len(df)}, Columns: {len(df.columns)}")
-df.head(3)
+print(f"Rows: {len(df):,}  |  Columns: {len(df.columns):,}")
+
+# 3) Quick schema peek (first 12 columns to keep output tidy)
+preview_cols = list(df.columns[:12])
+display(df[preview_cols].head(5))
+
+# 4) Helpful normalized aliases (so later sections work even if column names vary a bit)
+#    Feel free to add more aliases if your CSV headers differ.
+ALIASES = {
+    "EMPLOYMENT_TYPE_NAME": ["EMPLOYMENT_TYPE_NAME", "EMPLOYMENT_TYPE", "EMP_TYPE"],
+    "SALARY_FROM":          ["SALARY_FROM", "SAL_FROM", "MIN_SALARY", "SALARY_MIN"],
+    "SALARY_TO":            ["SALARY_TO", "SAL_TO", "MAX_SALARY", "SALARY_MAX"],
+    "INDUSTRY_NAME":        ["INDUSTRY_NAME", "NAICS2_NAME", "NAICS_NAME"],
+    "JOB_TITLE":            ["JOB_TITLE", "TITLE_NAME", "TITLE"],
+    "POSTED":               ["POSTED", "POSTED_DATE", "DATE_POSTED"],
+    "REMOTE_TYPE_NAME":     ["REMOTE_TYPE_NAME", "REMOTE_TYPE", "REMOTE"],
+    "SKILL_NAME":           ["SKILL_NAME", "SKILL"]
+}
+
+def pick(existing: list[str], candidates: list[str]) -> str | None:
+    for c in candidates:
+        if c in existing:
+            return c
+    return None
+
+use = {k: pick(df.columns.tolist(), v) for k, v in ALIASES.items()}
+print("Resolved column names:", use)
+
+# 5) Minimal cleaning: numbers/dates we’ll need later
+if use["SALARY_FROM"]:
+    df["SALARY_FROM_NUM"] = pd.to_numeric(df[use["SALARY_FROM"]], errors="coerce")
+if use["SALARY_TO"]:
+    df["SALARY_TO_NUM"] = pd.to_numeric(df[use["SALARY_TO"]], errors="coerce")
+if use["POSTED"]:
+    df["POSTED_DATE"] = pd.to_datetime(df[use["POSTED"]], errors="coerce", utc=True).dt.date
+
+# 6) Tiny health report
+health = {
+    "non-null rows (any)": int(df.dropna(how="all").shape[0]),
+    "with salary_from": int(df["SALARY_FROM_NUM"].notna().sum() if "SALARY_FROM_NUM" in df else 0),
+    "with salary_to": int(df["SALARY_TO_NUM"].notna().sum() if "SALARY_TO_NUM" in df else 0),
+    "with posted_date": int(df["POSTED_DATE"].notna().sum() if "POSTED_DATE" in df else 0),
+}
+health
+
+```
+
+# Salary Distribution by Employment Type
+
+
+```{python}
+#| label: salary-by-employment-type
+#| echo: true
+#| message: false
+#| warning: false
+
+import plotly.express as px
+
+# usable columns
+col_emp = use.get("EMPLOYMENT_TYPE_NAME")
+col_sal = "SALARY_FROM_NUM" if "SALARY_FROM_NUM" in df else use.get("SALARY_FROM")
+
+if col_emp and col_sal:
+    # Drop missing values for clean plotting
+    subset = df.dropna(subset=[col_emp, col_sal])
+    
+    # filter extreme outliers for clearer visualization
+    q_low, q_high = subset[col_sal].quantile([0.05, 0.95])
+    subset = subset[(subset[col_sal] >= q_low) & (subset[col_sal] <= q_high)]
+
+    # Create the boxplot
+    fig = px.box(
+        subset,
+        x=col_emp,
+        y=col_sal,
+        color=col_emp,
+        title="Salary Distribution by Employment Type",
+        template="plotly_dark",
+        color_discrete_sequence=px.colors.qualitative.Bold
+    )
+
+    fig.update_layout(
+        xaxis_title="Employment Type",
+        yaxis_title="Salary (From)",
+        title_font=dict(size=20, family="Inter", color="#1f6feb"),
+        font=dict(family="Inter", size=13),
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        margin=dict(t=60, l=60, r=40, b=60)
+    )
+
+    fig.show()
+else:
+    print("❌ Required columns not found for salary distribution plot.")
 ```
