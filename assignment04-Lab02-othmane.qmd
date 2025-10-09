@@ -1,0 +1,48 @@
+---
+title: "Assignment 04 — Lab 02"
+subtitle: "Insight from Data and Visualizations"
+author:
+  - name: "Othmane Elouardi"
+    affiliations:
+      - id: bu
+        name: "Boston University"
+        city: "Boston"
+        state: "MA"
+date: "2025-10-08"
+number-sections: true
+format:
+  html:
+    theme:
+      light: lux
+      dark: slate
+    toc: true
+    toc-depth: 3
+    toc-location: right
+    smooth-scroll: true
+    code-fold: true
+    code-tools: true
+    code-line-numbers: true
+    highlight-style: a11y
+    page-layout: article
+    css: styles.css
+    grid:
+      body-width: 900px
+      margin-width: 280px
+execute:
+  echo: true
+  warning: false
+  error: false
+  freeze: auto
+jupyter: env
+---
+
+# Assignment 04 — Lab 02
+
+This lab focuses on **Visual Reporting and Storytelling** using your Lightcast data.
+
+## 1. Setup
+
+```{python}
+# quick sanity check that the page is alive
+msg = "Hello from Lab 02 ✅"
+msg
