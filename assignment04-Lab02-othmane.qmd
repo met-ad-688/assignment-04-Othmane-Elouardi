@@ -36,13 +36,51 @@ execute:
 jupyter: env
 ---
 
-# Assignment 04 — Lab 02
+# Introduction
+The objective of this lab is to apply visual reporting and storytelling techniques to analyze job market data provided by Lightcast. Through this exercise, we will use PySpark and data visualization tools to explore, clean, and interpret a large dataset of job postings. The goal is to transform raw data into meaningful insights by identifying trends, patterns, and relationships between variables such as education level, remote work type, experience, and salary. This lab emphasizes not only technical proficiency in data processing but also the ability to communicate analytical findings effectively through visual narratives.
 
-This lab focuses on **Visual Reporting and Storytelling** using your Lightcast data.
+# Load the Dataset
 
-## 1. Setup
+In this step, we’ll use **PySpark** to load the *Lightcast Job Postings* dataset into a Spark DataFrame.  
+This allows us to handle large data efficiently before moving to Pandas for visualization.
 
 ```{python}
-# quick sanity check that the page is alive
-msg = "Hello from Lab 02 ✅"
-msg
+# --- Load the Lightcast dataset with PySpark ---------------------------------
+
+from pyspark.sql import SparkSession
+import os
+
+# Initialize Spark session (optimized for EC2 memory limits)
+spark = (
+    SparkSession.builder
+    .appName("LightcastData")
+    .config("spark.driver.memory", "1g")
+    .getOrCreate()
+)
+
+# Define dataset path
+csv_path = "data/lightcast_job_postings.csv"
+
+# Check path validity
+if not os.path.exists(csv_path):
+    raise FileNotFoundError(
+        f"❌ Could not find {csv_path}. Please ensure the file exists in the data/ folder."
+    )
+
+# Load dataset
+df = (
+    spark.read
+    .option("header", "true")        # First row as headers
+    .option("inferSchema", "true")   # Auto-detect data types
+    .option("multiLine", "true")     # Handle multi-line text fields
+    .option("escape", "\"")          # Handle embedded quotes
+    .csv(csv_path)
+)
+
+# Confirm load success
+print("✅ Dataset successfully loaded!")
+df.printSchema()
+df.show(5, truncate=False)
+
+```
+

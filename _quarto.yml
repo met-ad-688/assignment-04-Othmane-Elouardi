@@ -1,0 +1,33 @@
+project:
+  type: website
+  output-dir: _site
+  render:
+    - index.qmd
+    - assignment04-Lab01-othmane.qmd
+    - assignment04-Lab02-othmane.qmd
+
+website:
+  title: "Assignment 04 — Lightcast Job Market Analysis"
+  navbar:
+    left:
+      - text: "Overview"
+        href: index.qmd
+      - text: "Lab 01"
+        href: assignment04-Lab01-othmane.qmd
+      - text: "Lab 02"
+        href: assignment04-Lab02-othmane.qmd
+
+
+format:
+  html:
+    theme:
+      light: lux
+      dark: slate
+    toc: true
+    toc-location: right
+    smooth-scroll: true
+    code-fold: true
+    code-tools: true
+    code-line-numbers: true
+    highlight-style: a11y
+    css: styles.css

@@ -1,0 +1,140 @@
+/* --- Fonts --- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+/* --- Base Variables --- */
+:root {
+  --bg-light: linear-gradient(180deg, #f7f9fc 0%, #e9edf3 100%);
+  --card-bg: #ffffff;
+  --text-color: #1d1d1f;
+  --heading-color: #0a0a0a;
+  --accent: #1f6feb;
+  --muted: #6b7280;
+  --border-color: rgba(0, 0, 0, 0.08);
+  --shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+}
+
+/* --- Dark Mode Overrides --- */
+:root[data-bs-theme="dark"] {
+  --bg-light: linear-gradient(180deg, #0d1117 0%, #1a1f27 100%);
+  --card-bg: #161b22;
+  --text-color: #e5e7eb;
+  --heading-color: #f8fafc;
+  --accent: #58a6ff;
+  --muted: #9ca3af;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+}
+
+/* --- Page Background --- */
+html, body {
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg-light);
+  color: var(--text-color);
+  letter-spacing: 0.01em;
+  margin: 0;
+  padding: 0;
+}
+
+/* --- Content Card --- */
+body > main.content {
+  background: var(--card-bg);
+  box-shadow: var(--shadow);
+  border-radius: 16px;
+  padding: 2rem 3rem;
+  margin: 2.5rem auto;
+  max-width: 980px;
+  border: 1px solid var(--border-color);
+  transition: background 0.3s ease;
+}
+
+/* --- Title Block --- */
+.quarto-title-block {
+  background: none;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 1rem;
+  margin-bottom: 2rem;
+}
+.quarto-title .title {
+  font-weight: 700;
+  color: var(--heading-color);
+  letter-spacing: 0.5px;
+}
+
+/* --- Metadata --- */
+.quarto-title-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+/* --- Headings --- */
+h1, h2, h3 {
+  color: var(--heading-color);
+  font-weight: 700;
+}
+h1 { font-size: 2.1rem; margin-bottom: 0.75rem; }
+h2 { font-size: 1.5rem; margin-top: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.4rem; }
+h3 { font-size: 1.25rem; margin-top: 1.5rem; }
+
+/* --- Links --- */
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* --- Tables --- */
+table {
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+}
+th, td {
+  padding: 0.6em 0.8em;
+}
+thead {
+  background-color: rgba(31, 111, 235, 0.07);
+}
+
+/* --- Code Styling --- */
+pre, code {
+  font-family: "JetBrains Mono", monospace;
+  background: rgba(31, 111, 235, 0.04);
+  border-radius: 6px;
+}
+pre {
+  padding: 0.8rem 1rem;
+  overflow-x: auto;
+}
+.quarto-code-tools {
+  opacity: 0.85;
+}
+
+/* --- Plots / Figures --- */
+.figure, figure, .html-widget, .plotly.html-widget {
+  background: var(--card-bg);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  margin: 1.5rem 0;
+  padding: 0.8rem;
+}
+
+/* --- ToC Styling --- */
+nav#TOC {
+  font-size: 0.95rem;
+  background: var(--card-bg);
+  border-radius: 10px;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow);
+}
+nav#TOC .nav-link {
+  color: var(--muted);
+}
+nav#TOC .active > .nav-link {
+  color: var(--accent);
+  font-weight: 600;
+}

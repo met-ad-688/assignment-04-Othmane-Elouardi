@@ -1,5 +1,6 @@
 ---
-title: "Assignment 04 — Lightcast Job Market Analysis"
+title: "Assignment 04 — Lab 01"
+subtitle: "Visual Reporting and Storytelling"
 author:
   - name: "Othmane Elouardi"
     affiliations:
@@ -7,7 +8,7 @@ author:
         name: "Boston University"
         city: "Boston"
         state: "MA"
-date: 2025-10-08
+date: "2025-10-08"
 number-sections: true
 format:
   html:
@@ -25,8 +26,8 @@ format:
     page-layout: article
     css: styles.css
     grid:
-      body-width: 900px     
-      margin-width: 280px   
+      body-width: 900px
+      margin-width: 280px
 execute:
   echo: true
   warning: false
@@ -34,6 +35,7 @@ execute:
   freeze: auto
 jupyter: env
 ---
+
 
 # Introduction
 
@@ -782,5 +784,5 @@ else:
 ```
 
 ## ✏️ Explanation
-The Sankey diagram shows how various job titles—such as Data Analyst, Data Modeler, and ERP Business Analyst—flow into a single ONET occupation category, Business Intelligence Analysts.
+The Sankey diagram shows how various job titles, such as Data Analyst, Data Modeler, and ERP Business Analyst, flow into a single ONET occupation category, Business Intelligence Analysts.
 This highlights that many data-related positions ultimately map to the same occupational classification, reflecting the overlap and convergence of skills within business intelligence and analytics roles.
