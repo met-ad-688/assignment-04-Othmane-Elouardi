@@ -163,3 +163,187 @@ if col_emp and col_sal:
 else:
     print("❌ Required columns not found for salary distribution plot.")
 ```
+
+## ✏️ Explanation
+
+The box plot shows how salary levels vary across different employment types. Full-time positions generally have higher median salaries and a wider pay range, reflecting greater earning potential but also more variability.
+In contrast, part-time and contract roles exhibit lower median salaries with tighter ranges, suggesting more consistency but fewer high-paying opportunities.
+
+
+
+
+# Salary Distribution by Industry
+
+```{python}
+
+#| label: salary-by-industry
+#| echo: true
+#| message: false
+#| warning: false
+
+import numpy as np
+import pandas as pd
+import plotly.express as px
+
+# Resolve column names dynamically (using your earlier `use` dict if present)
+col_ind = (use.get("INDUSTRY_NAME") if "use" in locals() else
+           ("INDUSTRY_NAME" if "INDUSTRY_NAME" in df.columns else None))
+col_sal = ("SALARY_FROM_NUM" if "SALARY_FROM_NUM" in df.columns else
+           (use.get("SALARY_FROM") if "use" in locals() else
+            ("SALARY_FROM" if "SALARY_FROM" in df.columns else None)))
+
+if col_ind and col_sal:
+    # Keep only rows with industry and salary
+    dfi = df.dropna(subset=[col_ind, col_sal]).copy()
+
+    # Pick top-N industries by posting volume to keep the chart readable
+    TOP_N = 10
+    top_inds = (dfi[col_ind]
+                .value_counts(dropna=False)
+                .nlargest(TOP_N)
+                .index)
+    dfi = dfi[dfi[col_ind].isin(top_inds)]
+
+    # Trim extreme outliers globally for clarity (5th–95th percentile)
+    ql, qh = dfi[col_sal].quantile([0.05, 0.95])
+    dfi = dfi[(dfi[col_sal] >= ql) & (dfi[col_sal] <= qh)]
+
+    # Order industries by median salary (descending)
+    medians = dfi.groupby(col_ind)[col_sal].median().sort_values(ascending=False)
+    category_order = medians.index.tolist()
+
+    # Box plot (clean + interactive)
+    fig = px.box(
+        dfi,
+        x=col_ind,
+        y=col_sal,
+        color=col_ind,
+        category_orders={col_ind: category_order},
+        title="Salary Distribution by Industry (Top 10 by Postings)",
+        template="plotly_dark",
+        color_discrete_sequence=px.colors.qualitative.Bold,
+        points=False  # hide raw points to keep it tidy
+    )
+
+    fig.update_layout(
+        xaxis_title="Industry",
+        yaxis_title="Salary (From)",
+        title_font=dict(size=20, family="Inter", color="#1f6feb"),
+        font=dict(family="Inter", size=13),
+        xaxis_tickangle=35,
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        margin=dict(t=60, l=60, r=40, b=80),
+        showlegend=False
+    )
+
+    fig.show()
+else:
+    print("❌ Required columns not found for industry salary plot.")
+
+
+
+
+```
+
+```{python}
+
+#| label: salary-by-industry-stats
+#| echo: false
+#| message: false
+#| warning: false
+
+if col_ind and col_sal:
+    stats = (df.dropna(subset=[col_ind, col_sal])
+               .groupby(col_ind)[col_sal]
+               .agg(N="size", mean="mean", median="median", p25=lambda s: s.quantile(0.25),
+                    p75=lambda s: s.quantile(0.75))
+               .sort_values("median", ascending=False)
+               .head(10))
+
+    # Round for neatness
+    display(stats.round(0))
+
+
+```
+
+## ✏️ Explanation
+
+The chart shows that salary levels vary notably across industries. The Information and Accommodation and Food Services sectors exhibit the highest median and upper-range salaries, suggesting strong compensation potential in these fields.
+Meanwhile, industries like Administrative Support and Retail Trade tend to offer lower median salaries, reflecting more standardized pay structures and fewer high-paying roles.
+
+
+# Job Posting Trends Over Time
+
+
+
+```{python}
+
+
+
+
+
+```
+
+
+
+# Top 10 Job Titles by Count
+
+
+```{python}
+
+
+
+
+
+```
+
+
+
+# Remote vs On-Site Job Postings
+
+
+```{python}
+
+
+
+
+
+```
+
+
+# Skill Demand Analysis by Industry (Stacked Bar Chart)
+
+
+```{python}
+
+
+
+
+
+```
+
+
+# Salary Analysis by ONET Occupation Type (Bubble Chart)
+
+```{python}
+
+
+
+
+
+```
+
+
+# Career Pathway Trends (Sankey Diagram)
+
+```{python}
+
+
+
+
+
+```
+
+
+
