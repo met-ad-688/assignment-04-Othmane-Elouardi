@@ -387,11 +387,45 @@ The chart shows that Data Analyst is by far the most frequently posted job title
 
 ```{python}
 
+#| label: remote-vs-onsite
+#| echo: true
+#| message: false
+#| warning: false
+
+import plotly.express as px
+
+if "REMOTE_TYPE_NAME" in df.columns:
+    remote_counts = df["REMOTE_TYPE_NAME"].value_counts().reset_index()
+    remote_counts.columns = ["Remote Type", "Count"]
+
+    fig = px.pie(
+        remote_counts,
+        names="Remote Type",
+        values="Count",
+        title="Remote vs On-Site Job Postings",
+        color_discrete_sequence=px.colors.qualitative.Pastel
+    )
+
+    fig.update_traces(textposition="inside", textinfo="percent+label")
+    fig.update_layout(
+        title_font=dict(size=20, family="Inter", color="#1f6feb"),
+        font=dict(family="Inter", size=14),
+        showlegend=False,
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)"
+    )
+
+    fig.show()
+else:
+    print("❌ 'REMOTE_TYPE_NAME' column not found in dataset.")
 
 
 
 
 ```
+
+## ✏️ Explanation
+The chart shows that a large majority of job postings do not specify a remote type, while around 17% explicitly offer remote positions. A smaller portion of listings are hybrid or partially remote, indicating that while remote work is available, most employers still emphasize on-site or unspecified work arrangements.
 
 
 # Skill Demand Analysis by Industry (Stacked Bar Chart)
