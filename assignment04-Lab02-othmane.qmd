@@ -168,58 +168,106 @@ print(f"📁 File location: {final_csv}")
 
 
 ```{python}
-# --- Salary by Education Level -----------------------------------------------
+
+# --- 3) Salary by Education Level -------------------------------------------
 from pyspark.sql import functions as F
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+import os, re
+from datetime import datetime
 from IPython.display import Markdown, display
 
-# --- 1. Identify the education column dynamically ---
-edu_col = next(
-    (c for c in ["EDUCATION_LEVELS_NAME", "MIN_EDULEVELS_NAME", "MAX_EDULEVELS_NAME", "EDUCATION_LEVELS"]
-     if c in clean_df.columns),
-    None
-)
+# ========== Helpers: save charts + notes to _output ==========================
+os.makedirs("_output", exist_ok=True)
+ANALYSIS_MD = "_output/analysis.md"
 
-if edu_col is None:
-    raise ValueError("No education-related column found in the dataset.")
+def _slug(s: str) -> str:
+    s = re.sub(r"[^\w\s-]", "", s.lower()).strip()
+    return re.sub(r"[\s_-]+", "-", s)
 
-# --- 2. Prepare a smaller sample for visualization ---
-sdf = clean_df.select(
-    F.col(edu_col).alias("EDUCATION"),
-    "MAX_YEARS_EXPERIENCE",
-    "AVERAGE_SALARY"
-)
+# Save figure as HTML (interactive if mpld3 available; else HTML embedding PNG)
+try:
+    import mpld3
+    _HAS_MPLD3 = True
+except Exception:
+    _HAS_MPLD3 = False
 
-# --- 3. Convert to Pandas for visualization ---
-pdf = sdf.sample(0.1, seed=42).toPandas()
+def save_chart(fig, title: str, tag: str):
+    base = _slug(tag)
+    html_path = os.path.join("_output", f"{base}.html")
+    png_path  = os.path.join("_output", f"{base}.png")
 
-# --- 4. Group education levels into two categories ---
-def categorize_education(edu):
-    if pd.isna(edu):
-        return "Bachelor’s or lower"
-    edu = edu.lower()
-    if any(x in edu for x in ["bachelor", "associate", "ged", "no education"]):
-        return "Bachelor’s or lower"
-    elif any(x in edu for x in ["master", "phd", "doctor", "professional"]):
-        return "Master’s or PhD"
+    if _HAS_MPLD3:
+        with open(html_path, "w", encoding="utf-8") as f:
+            f.write(mpld3.fig_to_html(fig))
     else:
-        return "Bachelor’s or lower"
+        fig.savefig(png_path, bbox_inches="tight", dpi=125)
+        with open(html_path, "w", encoding="utf-8") as f:
+            f.write(
+                f"<!doctype html><meta charset='utf-8'>"
+                f"<title>{title}</title>"
+                f"<h2 style='font-family:sans-serif'>{title}</h2>"
+                f"<img src='{os.path.basename(png_path)}' style='max-width:100%;height:auto'/>"
+            )
+    print(f"💾 Saved: {html_path}")
 
-pdf["Education_Group"] = pdf["EDUCATION"].apply(categorize_education)
+def note(title: str, lines: list[str]):
+    with open(ANALYSIS_MD, "a", encoding="utf-8") as f:
+        f.write(f"## {title}\n" + "\n".join(lines) + "\n\n")
+        f.write(f"_Saved {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}_\n\n")
+    print(f"📝 Appended analysis for: {title}")
 
-# --- 5. Helper functions for clean visuals and inline text ---
-def explain(title, lines):
-    """Render markdown explanations below each chart."""
+def explain_inline(title, lines):
     display(Markdown(f"**{title}**  \n" + "  \n".join(lines)))
 
 def jitter(x, j=0.15):
-    """Add small noise to reduce point overlap."""
-    x = np.asarray(pd.Series(x).fillna(0))
+    x = np.asarray(pd.Series(x).astype(float).fillna(0.0))
     return x + np.random.uniform(-j, j, size=len(x))
 
-# --- 6. Explanations for each group ---
+# ========== 1) Pick an education column that exists ==========================
+edu_col = next(
+    (c for c in [
+        "EDUCATION_LEVELS_NAME", "MIN_EDULEVELS_NAME", "MAX_EDULEVELS_NAME", "EDUCATION_LEVELS"
+    ] if c in clean_df.columns),
+    None
+)
+if edu_col is None:
+    raise ValueError("No education-related column found in the dataset.")
+
+# ========== 2) Build a slim Spark DF and sample ==============================
+sdf = clean_df.select(
+    F.col(edu_col).alias("EDUCATION"),
+    F.col("MAX_YEARS_EXPERIENCE").cast("double").alias("MAX_YEARS_EXPERIENCE"),
+    F.col("AVERAGE_SALARY").cast("double").alias("AVERAGE_SALARY"),
+)
+
+# Light sample (adjust if you need more/less)
+# If your dataset is already small you can remove .sample(...)
+sdf_sample = sdf.sample(0.12, seed=42)
+
+# ========== 3) Convert to Pandas and categorize education ====================
+pdf = sdf_sample.toPandas()
+
+def categorize_education(edu):
+    if pd.isna(edu):
+        return "Bachelor’s or lower"
+    s = str(edu).lower()
+    if any(k in s for k in ["master", "phd", "ph.d", "doctoral", "doctor", "professional"]):
+        return "Master’s or PhD"
+    # Treat everything else as <= bachelor's per lab instructions
+    if any(k in s for k in ["bachelor", "associate", "ged", "no education"]):
+        return "Bachelor’s or lower"
+    return "Bachelor’s or lower"
+
+pdf["Education_Group"] = pdf["EDUCATION"].apply(categorize_education)
+
+# Optional cleanup: drop rows with missing salary for cleaner plots
+pdf = pdf.dropna(subset=["AVERAGE_SALARY"])
+
+groups = [g for g in pdf["Education_Group"].dropna().unique()]
+
+# Explanations (two sentences each)
 scatter_notes = {
     "Bachelor’s or lower": [
         "Salaries increase slightly with experience, but most jobs cluster at low experience with wide pay variation.",
@@ -230,7 +278,6 @@ scatter_notes = {
         "Variation remains wide, indicating experience alone doesn’t fully explain pay differences."
     ],
 }
-
 hist_notes = {
     "Bachelor’s or lower": [
         "The distribution is strongly right-skewed with most postings in lower bands and a long high-pay tail.",
@@ -242,42 +289,55 @@ hist_notes = {
     ],
 }
 
-# --- 7. Scatter plots with explanations ---
-for group in pdf["Education_Group"].unique():
-    subset = pdf[pdf["Education_Group"] == group]
+# ========== 4) Scatter plots + inline text + file outputs ====================
+for g in groups:
+    sub = pdf[pdf["Education_Group"] == g]
+    if sub.empty:
+        continue
 
-    plt.figure(figsize=(8,5))
-    plt.scatter(jitter(subset["MAX_YEARS_EXPERIENCE"]), subset["AVERAGE_SALARY"], s=15, alpha=0.6)
-    plt.title(f"Salary vs. Experience — {group}")
+    fig = plt.figure(figsize=(8,5))
+    plt.scatter(jitter(sub["MAX_YEARS_EXPERIENCE"]), sub["AVERAGE_SALARY"], s=15, alpha=0.6)
+    plt.title(f"Salary vs. Experience — {g}")
     plt.xlabel("Max Years Experience (jittered)")
     plt.ylabel("Average Salary")
     plt.tight_layout()
     plt.show()
 
-    explain(f"Salary vs. Experience — {group}", scatter_notes.get(group, [
+    title = f"Salary vs. Experience — {g}"
+    lines = scatter_notes.get(g, [
         "Salaries show a weak positive relationship with experience.",
         "Wide dispersion suggests role and industry strongly influence pay."
-    ]))
+    ])
+    explain_inline(title, lines)
+    save_chart(fig, title, tag=f"q3_scatter_{g}")
+    note(title, lines)
 
-# --- 8. Histograms with explanations ---
-for group in pdf["Education_Group"].unique():
-    subset = pdf.loc[pdf["Education_Group"] == group, "AVERAGE_SALARY"].dropna()
+# ========== 5) Histograms + inline text + file outputs =======================
+for g in groups:
+    sub = pdf.loc[pdf["Education_Group"] == g, "AVERAGE_SALARY"].dropna()
+    if sub.empty:
+        continue
 
-    plt.figure(figsize=(8,5))
-    counts, edges, _ = plt.hist(subset, bins=30, density=True, alpha=0.7)
+    fig = plt.figure(figsize=(8,5))
+    counts, edges, _ = plt.hist(sub, bins=30, density=True, alpha=0.7)
     centers = (edges[:-1] + edges[1:]) / 2
     smooth = pd.Series(counts).rolling(window=3, center=True, min_periods=1).mean()
     plt.plot(centers, smooth, linewidth=2)
-    plt.title(f"Salary Distribution — {group}")
+    plt.title(f"Salary Distribution — {g}")
     plt.xlabel("Average Salary")
     plt.ylabel("Density")
     plt.tight_layout()
     plt.show()
 
-    explain(f"Salary Distribution — {group}", hist_notes.get(group, [
+    title = f"Salary Distribution — {g}"
+    lines = hist_notes.get(g, [
         "Right-skewed distribution with most values in lower bands.",
         "Upper tail indicates a subset of high-pay roles."
-    ]))
+    ])
+    explain_inline(title, lines)
+    save_chart(fig, title, tag=f"q3_hist_{g}")
+    note(title, lines)
+
 
 ```
 
@@ -285,114 +345,169 @@ for group in pdf["Education_Group"].unique():
 
 
 ```{python}
-# Salary by Remote Work Type 
+# --- 4) Salary by Remote Work Type ------------------------------------------
 from pyspark.sql import functions as F
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+import os, re
+from datetime import datetime
 from IPython.display import Markdown, display
 
-# --- 1. Check if REMOTE_TYPE_NAME exists ---
-if "REMOTE_TYPE_NAME" not in clean_df.columns:
-    raise ValueError("Column 'REMOTE_TYPE_NAME' not found in dataset.")
+# ===== Helpers (defined only if missing) =====================================
+if 'save_chart' not in globals():
+    os.makedirs("_output", exist_ok=True)
+    ANALYSIS_MD = "_output/analysis.md"
 
-# --- 2. Create a simplified DataFrame for visualization ---
-sdf = clean_df.select(
-    "REMOTE_TYPE_NAME",
-    "MAX_YEARS_EXPERIENCE",
-    "AVERAGE_SALARY"
-)
+    def _slug(s: str) -> str:
+        s = re.sub(r"[^\w\s-]", "", s.lower()).strip()
+        return re.sub(r"[\s_-]+", "-", s)
 
-# --- 3. Convert to Pandas sample for plotting ---
-pdf = sdf.sample(0.1, seed=42).toPandas()
+    try:
+        import mpld3
+        _HAS_MPLD3 = True
+    except Exception:
+        _HAS_MPLD3 = False
 
-# --- 4. Clean and group remote type labels ---
-def categorize_remote(val):
-    if pd.isna(val) or str(val).strip() == "":
-        return "Onsite"
-    val = val.lower()
-    if "remote" in val:
-        return "Remote"
-    elif "hybrid" in val:
-        return "Hybrid"
-    else:
-        return "Onsite"
+    def save_chart(fig, title: str, tag: str):
+        base = _slug(tag)
+        html_path = os.path.join("_output", f"{base}.html")
+        png_path  = os.path.join("_output", f"{base}.png")
 
-pdf["Remote_Type_Group"] = pdf["REMOTE_TYPE_NAME"].apply(categorize_remote)
+        if _HAS_MPLD3:
+            with open(html_path, "w", encoding="utf-8") as f:
+                f.write(mpld3.fig_to_html(fig))
+        else:
+            fig.savefig(png_path, bbox_inches="tight", dpi=125)
+            with open(html_path, "w", encoding="utf-8") as f:
+                f.write(
+                    f"<!doctype html><meta charset='utf-8'>"
+                    f"<title>{title}</title>"
+                    f"<h2 style='font-family:sans-serif'>{title}</h2>"
+                    f"<img src='{os.path.basename(png_path)}' style='max-width:100%;height:auto'/>"
+                )
+        print(f"💾 Saved: {html_path}")
 
-# --- 5. Helper functions for inline explanations ---
-def explain(title, lines):
+    def note(title: str, lines: list[str]):
+        with open(ANALYSIS_MD, "a", encoding="utf-8") as f:
+            f.write(f"## {title}\n" + "\n".join(lines) + "\n\n")
+            f.write(f"_Saved {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}_\n\n")
+        print(f"📝 Appended analysis for: {title}")
+
+def explain_inline(title, lines):
     display(Markdown(f"**{title}**  \n" + "  \n".join(lines)))
 
 def jitter(x, j=0.15):
-    x = np.asarray(pd.Series(x).fillna(0))
+    x = np.asarray(pd.Series(x).astype(float).fillna(0.0))
     return x + np.random.uniform(-j, j, size=len(x))
 
-# --- 6. Define explanations ---
+# ===== 1) Validate and prepare columns ======================================
+if "REMOTE_TYPE_NAME" not in clean_df.columns:
+    raise ValueError("Column 'REMOTE_TYPE_NAME' not found in dataset.")
+
+sdf = clean_df.select(
+    F.col("REMOTE_TYPE_NAME").alias("REMOTE"),
+    F.col("MAX_YEARS_EXPERIENCE").cast("double").alias("MAX_YEARS_EXPERIENCE"),
+    F.col("AVERAGE_SALARY").cast("double").alias("AVERAGE_SALARY"),
+)
+
+# sample lightly to keep memory comfortable (tweak fraction as needed)
+sdf_sample = sdf.sample(0.12, seed=42)
+
+pdf = sdf_sample.toPandas()
+
+def categorize_remote(val):
+    if pd.isna(val) or str(val).strip() == "" or str(val).lower() in {"none", "null"}:
+        return "Onsite"
+    s = str(val).lower()
+    if "hybrid" in s:
+        return "Hybrid"
+    if "remote" in s:
+        return "Remote"
+    return "Onsite"
+
+pdf["Remote_Type_Group"] = pdf["REMOTE"].apply(categorize_remote)
+pdf = pdf.dropna(subset=["AVERAGE_SALARY"])  # cleaner plots
+
+groups = [g for g in pdf["Remote_Type_Group"].dropna().unique()]
+
+# Explanations (two sentences each)
 scatter_notes = {
     "Remote": [
-        "Remote roles generally offer higher salaries across experience levels, reflecting competition for digital and distributed skills.",
-        "Salary spread is wider for remote jobs, suggesting varying levels of specialization and seniority."
+        "Remote roles generally offer higher salaries across experience levels, reflecting demand for distributed digital work.",
+        "Salary spread is wider for remote jobs, indicating varied specialization and seniority."
     ],
     "Hybrid": [
-        "Hybrid positions show moderate salaries, often balancing flexibility with in-office expectations.",
-        "Salaries increase gradually with experience, but few extreme outliers exist compared to remote roles."
+        "Hybrid positions show moderate salaries that rise gradually with experience.",
+        "Fewer extreme outliers suggest more standardized compensation than fully remote roles."
     ],
     "Onsite": [
-        "Onsite roles tend to cluster around lower-to-mid salary ranges with limited variation.",
-        "Experience appears to have a smaller impact on salary for onsite work compared to remote or hybrid."
-    ]
+        "Onsite roles cluster in lower-to-mid salary ranges with limited dispersion.",
+        "Experience appears to have a smaller effect on pay compared to remote or hybrid work."
+    ],
 }
-
 hist_notes = {
     "Remote": [
-        "Remote salary distributions are slightly right-skewed, with many postings above the median salary level.",
-        "This supports the idea that remote opportunities attract higher-paying, skill-intensive jobs."
+        "The salary distribution is right-skewed with a higher center, indicating many roles above the overall median.",
+        "A noticeable upper tail suggests specialized remote postings command premium pay."
     ],
     "Hybrid": [
-        "Hybrid roles show a balanced salary distribution with fewer high-end positions.",
-        "The curve suggests a steady middle-income concentration across job types."
+        "Hybrid salaries concentrate around the middle with a balanced spread.",
+        "The thinner upper tail implies fewer top-pay opportunities than remote roles."
     ],
     "Onsite": [
-        "Onsite roles show the lowest median salaries and the strongest right-skew, with most salaries concentrated near the lower end.",
-        "The distribution confirms that traditional in-person jobs tend to offer less pay than hybrid or remote options."
-    ]
+        "Onsite salaries show the lowest center with strong right skew toward the lower bands.",
+        "The short upper tail confirms fewer high-pay onsite postings compared with other modes."
+    ],
 }
 
-# --- 7. Scatter plots for each group ---
-for group in pdf["Remote_Type_Group"].unique():
-    subset = pdf[pdf["Remote_Type_Group"] == group]
+# ===== 2) Scatter plots + inline text + saved files ==========================
+for g in groups:
+    sub = pdf[pdf["Remote_Type_Group"] == g]
+    if sub.empty:
+        continue
 
-    plt.figure(figsize=(8,5))
-    plt.scatter(jitter(subset["MAX_YEARS_EXPERIENCE"]), subset["AVERAGE_SALARY"], s=15, alpha=0.6)
-    plt.title(f"Salary vs. Experience — {group}")
+    fig = plt.figure(figsize=(8,5))
+    plt.scatter(jitter(sub["MAX_YEARS_EXPERIENCE"]), sub["AVERAGE_SALARY"], s=15, alpha=0.6)
+    plt.title(f"Salary vs. Experience — {g}")
     plt.xlabel("Max Years Experience (jittered)")
     plt.ylabel("Average Salary")
     plt.tight_layout()
     plt.show()
 
-    explain(f"Salary vs. Experience — {group}", scatter_notes.get(group, [
-        "Salaries show some relationship with experience.",
-        "Variation across remote types suggests differences in job flexibility and demand."
-    ]))
+    title = f"Salary vs. Experience — {g}"
+    lines = scatter_notes.get(g, [
+        "Salaries show a modest positive relationship with experience.",
+        "Differences across work modes suggest varying job markets and requirements."
+    ])
+    explain_inline(title, lines)
+    save_chart(fig, title, tag=f"q4_scatter_{g}")
+    note(title, lines)
 
-# --- 8. Histogram plots for each group ---
-for group in pdf["Remote_Type_Group"].unique():
-    subset = pdf.loc[pdf["Remote_Type_Group"] == group, "AVERAGE_SALARY"].dropna()
+# ===== 3) Histograms + inline text + saved files =============================
+for g in groups:
+    sub = pdf.loc[pdf["Remote_Type_Group"] == g, "AVERAGE_SALARY"].dropna()
+    if sub.empty:
+        continue
 
-    plt.figure(figsize=(8,5))
-    counts, edges, _ = plt.hist(subset, bins=30, density=True, alpha=0.7)
+    fig = plt.figure(figsize=(8,5))
+    counts, edges, _ = plt.hist(sub, bins=30, density=True, alpha=0.7)
     centers = (edges[:-1] + edges[1:]) / 2
     smooth = pd.Series(counts).rolling(window=3, center=True, min_periods=1).mean()
     plt.plot(centers, smooth, linewidth=2)
-    plt.title(f"Salary Distribution — {group}")
+    plt.title(f"Salary Distribution — {g}")
     plt.xlabel("Average Salary")
     plt.ylabel("Density")
     plt.tight_layout()
     plt.show()
 
-    explain(f"Salary Distribution — {group}", hist_notes.get(group, [
-        "The salary distribution is right-skewed with most values in lower ranges.",
-        "Higher-paying roles appear less frequently but form the upper salary tail."
-    ]))
+    title = f"Salary Distribution — {g}"
+    lines = hist_notes.get(g, [
+        "Right-skewed distribution with most salaries in the lower ranges.",
+        "A smaller upper tail indicates fewer high-pay roles for this work mode."
+    ])
+    explain_inline(title, lines)
+    save_chart(fig, title, tag=f"q4_hist_{g}")
+    note(title, lines)
+
 ```
