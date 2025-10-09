@@ -44,8 +44,16 @@ The objective of this lab is to apply visual reporting and storytelling techniqu
 In this step, we’ll use **PySpark** to load the *Lightcast Job Postings* dataset into a Spark DataFrame.  
 This allows us to handle large data efficiently before moving to Pandas for visualization.
 
+
+
+
+
+
+
+
+
 ```{python}
-# --- Load the Lightcast dataset with PySpark ---------------------------------
+# Load the Lightcast dataset with PySpark
 
 from pyspark.sql import SparkSession
 import os
@@ -83,4 +91,78 @@ df.printSchema()
 df.show(5, truncate=False)
 
 ```
+
+# Data Cleaning and Typecasting
+
+In this step, we will clean and typecast key columns in our dataset to prepare it for analysis.  
+The process involves identifying relevant columns, converting data types, and handling missing values appropriately.
+
+## Typecast Key Columns:
+
+```{python}
+# Import necessary libraries
+from pyspark.sql import functions as F, types as T
+import os
+
+#  Select and typecast key columns
+# Convert salary fields to numeric values for later analysis
+clean_df = (
+    df.withColumn("SALARY_FROM", F.col("SALARY_FROM").cast(T.DoubleType()))
+      .withColumn("SALARY_TO", F.col("SALARY_TO").cast(T.DoubleType()))
+      .withColumn("MAX_YEARS_EXPERIENCE", F.col("MAX_YEARS_EXPERIENCE").cast(T.DoubleType()))
+)
+# Handle missing values
+# Fill missing numeric values with 0 (or another placeholder if desired)
+clean_df = clean_df.fillna({"SALARY_FROM": 0, "SALARY_TO": 0, "MAX_YEARS_EXPERIENCE": 0})
+
+# Optional: Calculate average salary column for convenience
+clean_df = clean_df.withColumn(
+    "AVERAGE_SALARY",
+    (F.col("SALARY_FROM") + F.col("SALARY_TO")) / 2
+)
+
+# Show a quick sample
+clean_df.select("SALARY_FROM", "SALARY_TO", "AVERAGE_SALARY", "MAX_YEARS_EXPERIENCE").show(5, truncate=False)
+
+```
+
+## Save the Cleaned Dataset
+Now that the dataset has been cleaned and typecasted, we will save it as a new CSV file for later use.
+
+
+```{python}
+
+# --- Save cleaned dataset safely ---------------------------------------------
+import os, glob, shutil
+
+# keep only the columns you need downstream (edit as needed)
+cols_to_keep = [c for c in [
+    "SALARY_FROM","SALARY_TO","AVERAGE_SALARY","MAX_YEARS_EXPERIENCE",
+    # "EDUCATION_NAME","REMOTE_TYPE_NAME","LOT_V6_SPECIALIZED_OCCUPATION_NAME",
+] if c in clean_df.columns]
+
+tmp_dir   = "_tmp_clean_csv"
+final_csv = "data/lightcast_cleaned.csv"
+
+# Write a single CSV part from Spark
+(clean_df
+ .select(cols_to_keep) if cols_to_keep else clean_df
+).coalesce(1).write.mode("overwrite").option("header","true").csv(tmp_dir)
+
+# Move part-*.csv to final path
+part_files = glob.glob(os.path.join(tmp_dir, "part-*.csv"))
+if not part_files:
+    raise RuntimeError("No part file found after Spark write.")
+if os.path.exists(final_csv):
+    os.remove(final_csv)
+shutil.move(part_files[0], final_csv)
+shutil.rmtree(tmp_dir, ignore_errors=True)
+
+print("✅ Cleaned dataset saved.")
+print(f"📁 File location: {final_csv}")
+
+
+```
+
+
 

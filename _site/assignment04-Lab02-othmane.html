@@ -327,6 +327,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul>
   <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction"><span class="header-section-number">1</span> Introduction</a></li>
   <li><a href="#load-the-dataset" id="toc-load-the-dataset" class="nav-link" data-scroll-target="#load-the-dataset"><span class="header-section-number">2</span> Load the Dataset</a></li>
+  <li><a href="#data-cleaning-and-typecasting" id="toc-data-cleaning-and-typecasting" class="nav-link" data-scroll-target="#data-cleaning-and-typecasting"><span class="header-section-number">3</span> Data Cleaning and Typecasting</a>
+  <ul class="collapse">
+  <li><a href="#typecast-key-columns" id="toc-typecast-key-columns" class="nav-link" data-scroll-target="#typecast-key-columns"><span class="header-section-number">3.1</span> Typecast Key Columns:</a></li>
+  <li><a href="#save-the-cleaned-dataset" id="toc-save-the-cleaned-dataset" class="nav-link" data-scroll-target="#save-the-cleaned-dataset"><span class="header-section-number">3.2</span> Save the Cleaned Dataset</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -381,10 +386,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h1 data-number="2"><span class="header-section-number">2</span> Load the Dataset</h1>
 <p>In this step, we’ll use <strong>PySpark</strong> to load the <em>Lightcast Job Postings</em> dataset into a Spark DataFrame.<br>
 This allows us to handle large data efficiently before moving to Pandas for visualization.</p>
-<div id="f68b76e6" class="cell" data-execution_count="1">
+<div id="484e7b7d" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1"></a><span class="co"># --- Load the Lightcast dataset with PySpark ---------------------------------</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1"></a><span class="co"># Load the Lightcast dataset with PySpark</span></span>
 <span id="cb1-2"><a href="#cb1-2"></a></span>
 <span id="cb1-3"><a href="#cb1-3"></a><span class="im">from</span> pyspark.sql <span class="im">import</span> SparkSession</span>
 <span id="cb1-4"><a href="#cb1-4"></a><span class="im">import</span> os</span>
@@ -568,10 +573,99 @@ root
 only showing top 5 rows</code></pre>
 </div>
 </div>
+</section>
+<section id="data-cleaning-and-typecasting" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Data Cleaning and Typecasting</h1>
+<p>In this step, we will clean and typecast key columns in our dataset to prepare it for analysis.<br>
+The process involves identifying relevant columns, converting data types, and handling missing values appropriately.</p>
+<section id="typecast-key-columns" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="typecast-key-columns"><span class="header-section-number">3.1</span> Typecast Key Columns:</h2>
+<div id="b6907fd6" class="cell" data-execution_count="2">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1"></a><span class="co"># Import necessary libraries</span></span>
+<span id="cb3-2"><a href="#cb3-2"></a><span class="im">from</span> pyspark.sql <span class="im">import</span> functions <span class="im">as</span> F, types <span class="im">as</span> T</span>
+<span id="cb3-3"><a href="#cb3-3"></a><span class="im">import</span> os</span>
+<span id="cb3-4"><a href="#cb3-4"></a></span>
+<span id="cb3-5"><a href="#cb3-5"></a><span class="co">#  Select and typecast key columns</span></span>
+<span id="cb3-6"><a href="#cb3-6"></a><span class="co"># Convert salary fields to numeric values for later analysis</span></span>
+<span id="cb3-7"><a href="#cb3-7"></a>clean_df <span class="op">=</span> (</span>
+<span id="cb3-8"><a href="#cb3-8"></a>    df.withColumn(<span class="st">"SALARY_FROM"</span>, F.col(<span class="st">"SALARY_FROM"</span>).cast(T.DoubleType()))</span>
+<span id="cb3-9"><a href="#cb3-9"></a>      .withColumn(<span class="st">"SALARY_TO"</span>, F.col(<span class="st">"SALARY_TO"</span>).cast(T.DoubleType()))</span>
+<span id="cb3-10"><a href="#cb3-10"></a>      .withColumn(<span class="st">"MAX_YEARS_EXPERIENCE"</span>, F.col(<span class="st">"MAX_YEARS_EXPERIENCE"</span>).cast(T.DoubleType()))</span>
+<span id="cb3-11"><a href="#cb3-11"></a>)</span>
+<span id="cb3-12"><a href="#cb3-12"></a><span class="co"># Handle missing values</span></span>
+<span id="cb3-13"><a href="#cb3-13"></a><span class="co"># Fill missing numeric values with 0 (or another placeholder if desired)</span></span>
+<span id="cb3-14"><a href="#cb3-14"></a>clean_df <span class="op">=</span> clean_df.fillna({<span class="st">"SALARY_FROM"</span>: <span class="dv">0</span>, <span class="st">"SALARY_TO"</span>: <span class="dv">0</span>, <span class="st">"MAX_YEARS_EXPERIENCE"</span>: <span class="dv">0</span>})</span>
+<span id="cb3-15"><a href="#cb3-15"></a></span>
+<span id="cb3-16"><a href="#cb3-16"></a><span class="co"># Optional: Calculate average salary column for convenience</span></span>
+<span id="cb3-17"><a href="#cb3-17"></a>clean_df <span class="op">=</span> clean_df.withColumn(</span>
+<span id="cb3-18"><a href="#cb3-18"></a>    <span class="st">"AVERAGE_SALARY"</span>,</span>
+<span id="cb3-19"><a href="#cb3-19"></a>    (F.col(<span class="st">"SALARY_FROM"</span>) <span class="op">+</span> F.col(<span class="st">"SALARY_TO"</span>)) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb3-20"><a href="#cb3-20"></a>)</span>
+<span id="cb3-21"><a href="#cb3-21"></a></span>
+<span id="cb3-22"><a href="#cb3-22"></a><span class="co"># Show a quick sample</span></span>
+<span id="cb3-23"><a href="#cb3-23"></a>clean_df.select(<span class="st">"SALARY_FROM"</span>, <span class="st">"SALARY_TO"</span>, <span class="st">"AVERAGE_SALARY"</span>, <span class="st">"MAX_YEARS_EXPERIENCE"</span>).show(<span class="dv">5</span>, truncate<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>+-----------+---------+--------------+--------------------+
+|SALARY_FROM|SALARY_TO|AVERAGE_SALARY|MAX_YEARS_EXPERIENCE|
++-----------+---------+--------------+--------------------+
+|0.0        |0.0      |0.0           |2.0                 |
+|0.0        |0.0      |0.0           |3.0                 |
+|0.0        |0.0      |0.0           |0.0                 |
+|0.0        |0.0      |0.0           |0.0                 |
+|35000.0    |150000.0 |92500.0       |0.0                 |
++-----------+---------+--------------+--------------------+
+only showing top 5 rows</code></pre>
+</div>
+</div>
+</section>
+<section id="save-the-cleaned-dataset" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="save-the-cleaned-dataset"><span class="header-section-number">3.2</span> Save the Cleaned Dataset</h2>
+<p>Now that the dataset has been cleaned and typecasted, we will save it as a new CSV file for later use.</p>
+<div id="5005f51b" class="cell" data-execution_count="3">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1"></a><span class="co"># --- Save cleaned dataset safely ---------------------------------------------</span></span>
+<span id="cb5-2"><a href="#cb5-2"></a><span class="im">import</span> os, glob, shutil</span>
+<span id="cb5-3"><a href="#cb5-3"></a></span>
+<span id="cb5-4"><a href="#cb5-4"></a><span class="co"># keep only the columns you need downstream (edit as needed)</span></span>
+<span id="cb5-5"><a href="#cb5-5"></a>cols_to_keep <span class="op">=</span> [c <span class="cf">for</span> c <span class="kw">in</span> [</span>
+<span id="cb5-6"><a href="#cb5-6"></a>    <span class="st">"SALARY_FROM"</span>,<span class="st">"SALARY_TO"</span>,<span class="st">"AVERAGE_SALARY"</span>,<span class="st">"MAX_YEARS_EXPERIENCE"</span>,</span>
+<span id="cb5-7"><a href="#cb5-7"></a>    <span class="co"># "EDUCATION_NAME","REMOTE_TYPE_NAME","LOT_V6_SPECIALIZED_OCCUPATION_NAME",</span></span>
+<span id="cb5-8"><a href="#cb5-8"></a>] <span class="cf">if</span> c <span class="kw">in</span> clean_df.columns]</span>
+<span id="cb5-9"><a href="#cb5-9"></a></span>
+<span id="cb5-10"><a href="#cb5-10"></a>tmp_dir   <span class="op">=</span> <span class="st">"_tmp_clean_csv"</span></span>
+<span id="cb5-11"><a href="#cb5-11"></a>final_csv <span class="op">=</span> <span class="st">"data/lightcast_cleaned.csv"</span></span>
+<span id="cb5-12"><a href="#cb5-12"></a></span>
+<span id="cb5-13"><a href="#cb5-13"></a><span class="co"># Write a single CSV part from Spark</span></span>
+<span id="cb5-14"><a href="#cb5-14"></a>(clean_df</span>
+<span id="cb5-15"><a href="#cb5-15"></a> .select(cols_to_keep) <span class="cf">if</span> cols_to_keep <span class="cf">else</span> clean_df</span>
+<span id="cb5-16"><a href="#cb5-16"></a>).coalesce(<span class="dv">1</span>).write.mode(<span class="st">"overwrite"</span>).option(<span class="st">"header"</span>,<span class="st">"true"</span>).csv(tmp_dir)</span>
+<span id="cb5-17"><a href="#cb5-17"></a></span>
+<span id="cb5-18"><a href="#cb5-18"></a><span class="co"># Move part-*.csv to final path</span></span>
+<span id="cb5-19"><a href="#cb5-19"></a>part_files <span class="op">=</span> glob.glob(os.path.join(tmp_dir, <span class="st">"part-*.csv"</span>))</span>
+<span id="cb5-20"><a href="#cb5-20"></a><span class="cf">if</span> <span class="kw">not</span> part_files:</span>
+<span id="cb5-21"><a href="#cb5-21"></a>    <span class="cf">raise</span> <span class="pp">RuntimeError</span>(<span class="st">"No part file found after Spark write."</span>)</span>
+<span id="cb5-22"><a href="#cb5-22"></a><span class="cf">if</span> os.path.exists(final_csv):</span>
+<span id="cb5-23"><a href="#cb5-23"></a>    os.remove(final_csv)</span>
+<span id="cb5-24"><a href="#cb5-24"></a>shutil.move(part_files[<span class="dv">0</span>], final_csv)</span>
+<span id="cb5-25"><a href="#cb5-25"></a>shutil.rmtree(tmp_dir, ignore_errors<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb5-26"><a href="#cb5-26"></a></span>
+<span id="cb5-27"><a href="#cb5-27"></a><span class="bu">print</span>(<span class="st">"✅ Cleaned dataset saved."</span>)</span>
+<span id="cb5-28"><a href="#cb5-28"></a><span class="bu">print</span>(<span class="ss">f"📁 File location: </span><span class="sc">{</span>final_csv<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>✅ Cleaned dataset saved.
+📁 File location: data/lightcast_cleaned.csv</code></pre>
+</div>
+</div>
 
 
 <!-- -->
 
+</section>
 </section>
 
 </main> <!-- /main -->
@@ -1039,91 +1133,170 @@ only showing top 5 rows</code></pre>
     }
   });
   </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3" data-shortcodes="false"><pre class="sourceCode numberSource markdown number-lines code-with-copy"><code class="sourceCode markdown"><span id="cb3-1"><a href="#cb3-1"></a><span class="co">---</span></span>
-<span id="cb3-2"><a href="#cb3-2"></a><span class="an">title:</span><span class="co"> "Assignment 04 — Lab 02"</span></span>
-<span id="cb3-3"><a href="#cb3-3"></a><span class="an">subtitle:</span><span class="co"> "Insight from Data and Visualizations"</span></span>
-<span id="cb3-4"><a href="#cb3-4"></a><span class="an">author:</span></span>
-<span id="cb3-5"><a href="#cb3-5"></a><span class="co">  - name: "Othmane Elouardi"</span></span>
-<span id="cb3-6"><a href="#cb3-6"></a><span class="co">    affiliations:</span></span>
-<span id="cb3-7"><a href="#cb3-7"></a><span class="co">      - id: bu</span></span>
-<span id="cb3-8"><a href="#cb3-8"></a><span class="co">        name: "Boston University"</span></span>
-<span id="cb3-9"><a href="#cb3-9"></a><span class="co">        city: "Boston"</span></span>
-<span id="cb3-10"><a href="#cb3-10"></a><span class="co">        state: "MA"</span></span>
-<span id="cb3-11"><a href="#cb3-11"></a><span class="an">date:</span><span class="co"> "2025-10-08"</span></span>
-<span id="cb3-12"><a href="#cb3-12"></a><span class="an">number-sections:</span><span class="co"> true</span></span>
-<span id="cb3-13"><a href="#cb3-13"></a><span class="an">format:</span></span>
-<span id="cb3-14"><a href="#cb3-14"></a><span class="co">  html:</span></span>
-<span id="cb3-15"><a href="#cb3-15"></a><span class="co">    theme:</span></span>
-<span id="cb3-16"><a href="#cb3-16"></a><span class="co">      light: lux</span></span>
-<span id="cb3-17"><a href="#cb3-17"></a><span class="co">      dark: slate</span></span>
-<span id="cb3-18"><a href="#cb3-18"></a><span class="co">    toc: true</span></span>
-<span id="cb3-19"><a href="#cb3-19"></a><span class="co">    toc-depth: 3</span></span>
-<span id="cb3-20"><a href="#cb3-20"></a><span class="co">    toc-location: right</span></span>
-<span id="cb3-21"><a href="#cb3-21"></a><span class="co">    smooth-scroll: true</span></span>
-<span id="cb3-22"><a href="#cb3-22"></a><span class="co">    code-fold: true</span></span>
-<span id="cb3-23"><a href="#cb3-23"></a><span class="co">    code-tools: true</span></span>
-<span id="cb3-24"><a href="#cb3-24"></a><span class="co">    code-line-numbers: true</span></span>
-<span id="cb3-25"><a href="#cb3-25"></a><span class="co">    highlight-style: a11y</span></span>
-<span id="cb3-26"><a href="#cb3-26"></a><span class="co">    page-layout: article</span></span>
-<span id="cb3-27"><a href="#cb3-27"></a><span class="co">    css: styles.css</span></span>
-<span id="cb3-28"><a href="#cb3-28"></a><span class="co">    grid:</span></span>
-<span id="cb3-29"><a href="#cb3-29"></a><span class="co">      body-width: 900px</span></span>
-<span id="cb3-30"><a href="#cb3-30"></a><span class="co">      margin-width: 280px</span></span>
-<span id="cb3-31"><a href="#cb3-31"></a><span class="an">execute:</span></span>
-<span id="cb3-32"><a href="#cb3-32"></a><span class="co">  echo: true</span></span>
-<span id="cb3-33"><a href="#cb3-33"></a><span class="co">  warning: false</span></span>
-<span id="cb3-34"><a href="#cb3-34"></a><span class="co">  error: false</span></span>
-<span id="cb3-35"><a href="#cb3-35"></a><span class="co">  freeze: auto</span></span>
-<span id="cb3-36"><a href="#cb3-36"></a><span class="an">jupyter:</span><span class="co"> env</span></span>
-<span id="cb3-37"><a href="#cb3-37"></a><span class="co">---</span></span>
-<span id="cb3-38"><a href="#cb3-38"></a></span>
-<span id="cb3-39"><a href="#cb3-39"></a><span class="fu"># Introduction</span></span>
-<span id="cb3-40"><a href="#cb3-40"></a>The objective of this lab is to apply visual reporting and storytelling techniques to analyze job market data provided by Lightcast. Through this exercise, we will use PySpark and data visualization tools to explore, clean, and interpret a large dataset of job postings. The goal is to transform raw data into meaningful insights by identifying trends, patterns, and relationships between variables such as education level, remote work type, experience, and salary. This lab emphasizes not only technical proficiency in data processing but also the ability to communicate analytical findings effectively through visual narratives.</span>
-<span id="cb3-41"><a href="#cb3-41"></a></span>
-<span id="cb3-42"><a href="#cb3-42"></a><span class="fu"># Load the Dataset</span></span>
-<span id="cb3-43"><a href="#cb3-43"></a></span>
-<span id="cb3-44"><a href="#cb3-44"></a>In this step, we’ll use **PySpark** to load the *Lightcast Job Postings* dataset into a Spark DataFrame.  </span>
-<span id="cb3-45"><a href="#cb3-45"></a>This allows us to handle large data efficiently before moving to Pandas for visualization.</span>
-<span id="cb3-46"><a href="#cb3-46"></a></span>
-<span id="cb3-49"><a href="#cb3-49"></a><span class="in">```{python}</span></span>
-<span id="cb3-50"><a href="#cb3-50"></a><span class="co"># --- Load the Lightcast dataset with PySpark ---------------------------------</span></span>
-<span id="cb3-51"><a href="#cb3-51"></a></span>
-<span id="cb3-52"><a href="#cb3-52"></a><span class="im">from</span> pyspark.sql <span class="im">import</span> SparkSession</span>
-<span id="cb3-53"><a href="#cb3-53"></a><span class="im">import</span> os</span>
-<span id="cb3-54"><a href="#cb3-54"></a></span>
-<span id="cb3-55"><a href="#cb3-55"></a><span class="co"># Initialize Spark session (optimized for EC2 memory limits)</span></span>
-<span id="cb3-56"><a href="#cb3-56"></a>spark <span class="op">=</span> (</span>
-<span id="cb3-57"><a href="#cb3-57"></a>    SparkSession.builder</span>
-<span id="cb3-58"><a href="#cb3-58"></a>    .appName(<span class="st">"LightcastData"</span>)</span>
-<span id="cb3-59"><a href="#cb3-59"></a>    .config(<span class="st">"spark.driver.memory"</span>, <span class="st">"1g"</span>)</span>
-<span id="cb3-60"><a href="#cb3-60"></a>    .getOrCreate()</span>
-<span id="cb3-61"><a href="#cb3-61"></a>)</span>
-<span id="cb3-62"><a href="#cb3-62"></a></span>
-<span id="cb3-63"><a href="#cb3-63"></a><span class="co"># Define dataset path</span></span>
-<span id="cb3-64"><a href="#cb3-64"></a>csv_path <span class="op">=</span> <span class="st">"data/lightcast_job_postings.csv"</span></span>
-<span id="cb3-65"><a href="#cb3-65"></a></span>
-<span id="cb3-66"><a href="#cb3-66"></a><span class="co"># Check path validity</span></span>
-<span id="cb3-67"><a href="#cb3-67"></a><span class="cf">if</span> <span class="kw">not</span> os.path.exists(csv_path):</span>
-<span id="cb3-68"><a href="#cb3-68"></a>    <span class="cf">raise</span> <span class="pp">FileNotFoundError</span>(</span>
-<span id="cb3-69"><a href="#cb3-69"></a>        <span class="ss">f"❌ Could not find </span><span class="sc">{</span>csv_path<span class="sc">}</span><span class="ss">. Please ensure the file exists in the data/ folder."</span></span>
-<span id="cb3-70"><a href="#cb3-70"></a>    )</span>
-<span id="cb3-71"><a href="#cb3-71"></a></span>
-<span id="cb3-72"><a href="#cb3-72"></a><span class="co"># Load dataset</span></span>
-<span id="cb3-73"><a href="#cb3-73"></a>df <span class="op">=</span> (</span>
-<span id="cb3-74"><a href="#cb3-74"></a>    spark.read</span>
-<span id="cb3-75"><a href="#cb3-75"></a>    .option(<span class="st">"header"</span>, <span class="st">"true"</span>)        <span class="co"># First row as headers</span></span>
-<span id="cb3-76"><a href="#cb3-76"></a>    .option(<span class="st">"inferSchema"</span>, <span class="st">"true"</span>)   <span class="co"># Auto-detect data types</span></span>
-<span id="cb3-77"><a href="#cb3-77"></a>    .option(<span class="st">"multiLine"</span>, <span class="st">"true"</span>)     <span class="co"># Handle multi-line text fields</span></span>
-<span id="cb3-78"><a href="#cb3-78"></a>    .option(<span class="st">"escape"</span>, <span class="st">"</span><span class="ch">\"</span><span class="st">"</span>)          <span class="co"># Handle embedded quotes</span></span>
-<span id="cb3-79"><a href="#cb3-79"></a>    .csv(csv_path)</span>
-<span id="cb3-80"><a href="#cb3-80"></a>)</span>
-<span id="cb3-81"><a href="#cb3-81"></a></span>
-<span id="cb3-82"><a href="#cb3-82"></a><span class="co"># Confirm load success</span></span>
-<span id="cb3-83"><a href="#cb3-83"></a><span class="bu">print</span>(<span class="st">"✅ Dataset successfully loaded!"</span>)</span>
-<span id="cb3-84"><a href="#cb3-84"></a>df.printSchema()</span>
-<span id="cb3-85"><a href="#cb3-85"></a>df.show(<span class="dv">5</span>, truncate<span class="op">=</span><span class="va">False</span>)</span>
-<span id="cb3-86"><a href="#cb3-86"></a></span>
-<span id="cb3-87"><a href="#cb3-87"></a><span class="in">```</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7" data-shortcodes="false"><pre class="sourceCode numberSource markdown number-lines code-with-copy"><code class="sourceCode markdown"><span id="cb7-1"><a href="#cb7-1"></a><span class="co">---</span></span>
+<span id="cb7-2"><a href="#cb7-2"></a><span class="an">title:</span><span class="co"> "Assignment 04 — Lab 02"</span></span>
+<span id="cb7-3"><a href="#cb7-3"></a><span class="an">subtitle:</span><span class="co"> "Insight from Data and Visualizations"</span></span>
+<span id="cb7-4"><a href="#cb7-4"></a><span class="an">author:</span></span>
+<span id="cb7-5"><a href="#cb7-5"></a><span class="co">  - name: "Othmane Elouardi"</span></span>
+<span id="cb7-6"><a href="#cb7-6"></a><span class="co">    affiliations:</span></span>
+<span id="cb7-7"><a href="#cb7-7"></a><span class="co">      - id: bu</span></span>
+<span id="cb7-8"><a href="#cb7-8"></a><span class="co">        name: "Boston University"</span></span>
+<span id="cb7-9"><a href="#cb7-9"></a><span class="co">        city: "Boston"</span></span>
+<span id="cb7-10"><a href="#cb7-10"></a><span class="co">        state: "MA"</span></span>
+<span id="cb7-11"><a href="#cb7-11"></a><span class="an">date:</span><span class="co"> "2025-10-08"</span></span>
+<span id="cb7-12"><a href="#cb7-12"></a><span class="an">number-sections:</span><span class="co"> true</span></span>
+<span id="cb7-13"><a href="#cb7-13"></a><span class="an">format:</span></span>
+<span id="cb7-14"><a href="#cb7-14"></a><span class="co">  html:</span></span>
+<span id="cb7-15"><a href="#cb7-15"></a><span class="co">    theme:</span></span>
+<span id="cb7-16"><a href="#cb7-16"></a><span class="co">      light: lux</span></span>
+<span id="cb7-17"><a href="#cb7-17"></a><span class="co">      dark: slate</span></span>
+<span id="cb7-18"><a href="#cb7-18"></a><span class="co">    toc: true</span></span>
+<span id="cb7-19"><a href="#cb7-19"></a><span class="co">    toc-depth: 3</span></span>
+<span id="cb7-20"><a href="#cb7-20"></a><span class="co">    toc-location: right</span></span>
+<span id="cb7-21"><a href="#cb7-21"></a><span class="co">    smooth-scroll: true</span></span>
+<span id="cb7-22"><a href="#cb7-22"></a><span class="co">    code-fold: true</span></span>
+<span id="cb7-23"><a href="#cb7-23"></a><span class="co">    code-tools: true</span></span>
+<span id="cb7-24"><a href="#cb7-24"></a><span class="co">    code-line-numbers: true</span></span>
+<span id="cb7-25"><a href="#cb7-25"></a><span class="co">    highlight-style: a11y</span></span>
+<span id="cb7-26"><a href="#cb7-26"></a><span class="co">    page-layout: article</span></span>
+<span id="cb7-27"><a href="#cb7-27"></a><span class="co">    css: styles.css</span></span>
+<span id="cb7-28"><a href="#cb7-28"></a><span class="co">    grid:</span></span>
+<span id="cb7-29"><a href="#cb7-29"></a><span class="co">      body-width: 900px</span></span>
+<span id="cb7-30"><a href="#cb7-30"></a><span class="co">      margin-width: 280px</span></span>
+<span id="cb7-31"><a href="#cb7-31"></a><span class="an">execute:</span></span>
+<span id="cb7-32"><a href="#cb7-32"></a><span class="co">  echo: true</span></span>
+<span id="cb7-33"><a href="#cb7-33"></a><span class="co">  warning: false</span></span>
+<span id="cb7-34"><a href="#cb7-34"></a><span class="co">  error: false</span></span>
+<span id="cb7-35"><a href="#cb7-35"></a><span class="co">  freeze: auto</span></span>
+<span id="cb7-36"><a href="#cb7-36"></a><span class="an">jupyter:</span><span class="co"> env</span></span>
+<span id="cb7-37"><a href="#cb7-37"></a><span class="co">---</span></span>
+<span id="cb7-38"><a href="#cb7-38"></a></span>
+<span id="cb7-39"><a href="#cb7-39"></a><span class="fu"># Introduction</span></span>
+<span id="cb7-40"><a href="#cb7-40"></a>The objective of this lab is to apply visual reporting and storytelling techniques to analyze job market data provided by Lightcast. Through this exercise, we will use PySpark and data visualization tools to explore, clean, and interpret a large dataset of job postings. The goal is to transform raw data into meaningful insights by identifying trends, patterns, and relationships between variables such as education level, remote work type, experience, and salary. This lab emphasizes not only technical proficiency in data processing but also the ability to communicate analytical findings effectively through visual narratives.</span>
+<span id="cb7-41"><a href="#cb7-41"></a></span>
+<span id="cb7-42"><a href="#cb7-42"></a><span class="fu"># Load the Dataset</span></span>
+<span id="cb7-43"><a href="#cb7-43"></a></span>
+<span id="cb7-44"><a href="#cb7-44"></a>In this step, we’ll use **PySpark** to load the *Lightcast Job Postings* dataset into a Spark DataFrame.  </span>
+<span id="cb7-45"><a href="#cb7-45"></a>This allows us to handle large data efficiently before moving to Pandas for visualization.</span>
+<span id="cb7-46"><a href="#cb7-46"></a></span>
+<span id="cb7-47"><a href="#cb7-47"></a></span>
+<span id="cb7-48"><a href="#cb7-48"></a></span>
+<span id="cb7-49"><a href="#cb7-49"></a></span>
+<span id="cb7-50"><a href="#cb7-50"></a></span>
+<span id="cb7-51"><a href="#cb7-51"></a></span>
+<span id="cb7-52"><a href="#cb7-52"></a></span>
+<span id="cb7-53"><a href="#cb7-53"></a></span>
+<span id="cb7-54"><a href="#cb7-54"></a></span>
+<span id="cb7-57"><a href="#cb7-57"></a><span class="in">```{python}</span></span>
+<span id="cb7-58"><a href="#cb7-58"></a><span class="co"># Load the Lightcast dataset with PySpark</span></span>
+<span id="cb7-59"><a href="#cb7-59"></a></span>
+<span id="cb7-60"><a href="#cb7-60"></a><span class="im">from</span> pyspark.sql <span class="im">import</span> SparkSession</span>
+<span id="cb7-61"><a href="#cb7-61"></a><span class="im">import</span> os</span>
+<span id="cb7-62"><a href="#cb7-62"></a></span>
+<span id="cb7-63"><a href="#cb7-63"></a><span class="co"># Initialize Spark session (optimized for EC2 memory limits)</span></span>
+<span id="cb7-64"><a href="#cb7-64"></a>spark <span class="op">=</span> (</span>
+<span id="cb7-65"><a href="#cb7-65"></a>    SparkSession.builder</span>
+<span id="cb7-66"><a href="#cb7-66"></a>    .appName(<span class="st">"LightcastData"</span>)</span>
+<span id="cb7-67"><a href="#cb7-67"></a>    .config(<span class="st">"spark.driver.memory"</span>, <span class="st">"1g"</span>)</span>
+<span id="cb7-68"><a href="#cb7-68"></a>    .getOrCreate()</span>
+<span id="cb7-69"><a href="#cb7-69"></a>)</span>
+<span id="cb7-70"><a href="#cb7-70"></a></span>
+<span id="cb7-71"><a href="#cb7-71"></a><span class="co"># Define dataset path</span></span>
+<span id="cb7-72"><a href="#cb7-72"></a>csv_path <span class="op">=</span> <span class="st">"data/lightcast_job_postings.csv"</span></span>
+<span id="cb7-73"><a href="#cb7-73"></a></span>
+<span id="cb7-74"><a href="#cb7-74"></a><span class="co"># Check path validity</span></span>
+<span id="cb7-75"><a href="#cb7-75"></a><span class="cf">if</span> <span class="kw">not</span> os.path.exists(csv_path):</span>
+<span id="cb7-76"><a href="#cb7-76"></a>    <span class="cf">raise</span> <span class="pp">FileNotFoundError</span>(</span>
+<span id="cb7-77"><a href="#cb7-77"></a>        <span class="ss">f"❌ Could not find </span><span class="sc">{</span>csv_path<span class="sc">}</span><span class="ss">. Please ensure the file exists in the data/ folder."</span></span>
+<span id="cb7-78"><a href="#cb7-78"></a>    )</span>
+<span id="cb7-79"><a href="#cb7-79"></a></span>
+<span id="cb7-80"><a href="#cb7-80"></a><span class="co"># Load dataset</span></span>
+<span id="cb7-81"><a href="#cb7-81"></a>df <span class="op">=</span> (</span>
+<span id="cb7-82"><a href="#cb7-82"></a>    spark.read</span>
+<span id="cb7-83"><a href="#cb7-83"></a>    .option(<span class="st">"header"</span>, <span class="st">"true"</span>)        <span class="co"># First row as headers</span></span>
+<span id="cb7-84"><a href="#cb7-84"></a>    .option(<span class="st">"inferSchema"</span>, <span class="st">"true"</span>)   <span class="co"># Auto-detect data types</span></span>
+<span id="cb7-85"><a href="#cb7-85"></a>    .option(<span class="st">"multiLine"</span>, <span class="st">"true"</span>)     <span class="co"># Handle multi-line text fields</span></span>
+<span id="cb7-86"><a href="#cb7-86"></a>    .option(<span class="st">"escape"</span>, <span class="st">"</span><span class="ch">\"</span><span class="st">"</span>)          <span class="co"># Handle embedded quotes</span></span>
+<span id="cb7-87"><a href="#cb7-87"></a>    .csv(csv_path)</span>
+<span id="cb7-88"><a href="#cb7-88"></a>)</span>
+<span id="cb7-89"><a href="#cb7-89"></a></span>
+<span id="cb7-90"><a href="#cb7-90"></a><span class="co"># Confirm load success</span></span>
+<span id="cb7-91"><a href="#cb7-91"></a><span class="bu">print</span>(<span class="st">"✅ Dataset successfully loaded!"</span>)</span>
+<span id="cb7-92"><a href="#cb7-92"></a>df.printSchema()</span>
+<span id="cb7-93"><a href="#cb7-93"></a>df.show(<span class="dv">5</span>, truncate<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb7-94"><a href="#cb7-94"></a></span>
+<span id="cb7-95"><a href="#cb7-95"></a><span class="in">```</span></span>
+<span id="cb7-96"><a href="#cb7-96"></a></span>
+<span id="cb7-97"><a href="#cb7-97"></a><span class="fu"># Data Cleaning and Typecasting</span></span>
+<span id="cb7-98"><a href="#cb7-98"></a></span>
+<span id="cb7-99"><a href="#cb7-99"></a>In this step, we will clean and typecast key columns in our dataset to prepare it for analysis.  </span>
+<span id="cb7-100"><a href="#cb7-100"></a>The process involves identifying relevant columns, converting data types, and handling missing values appropriately.</span>
+<span id="cb7-101"><a href="#cb7-101"></a></span>
+<span id="cb7-102"><a href="#cb7-102"></a><span class="fu">## Typecast Key Columns:</span></span>
+<span id="cb7-103"><a href="#cb7-103"></a></span>
+<span id="cb7-106"><a href="#cb7-106"></a><span class="in">```{python}</span></span>
+<span id="cb7-107"><a href="#cb7-107"></a><span class="co"># Import necessary libraries</span></span>
+<span id="cb7-108"><a href="#cb7-108"></a><span class="im">from</span> pyspark.sql <span class="im">import</span> functions <span class="im">as</span> F, types <span class="im">as</span> T</span>
+<span id="cb7-109"><a href="#cb7-109"></a><span class="im">import</span> os</span>
+<span id="cb7-110"><a href="#cb7-110"></a></span>
+<span id="cb7-111"><a href="#cb7-111"></a><span class="co">#  Select and typecast key columns</span></span>
+<span id="cb7-112"><a href="#cb7-112"></a><span class="co"># Convert salary fields to numeric values for later analysis</span></span>
+<span id="cb7-113"><a href="#cb7-113"></a>clean_df <span class="op">=</span> (</span>
+<span id="cb7-114"><a href="#cb7-114"></a>    df.withColumn(<span class="st">"SALARY_FROM"</span>, F.col(<span class="st">"SALARY_FROM"</span>).cast(T.DoubleType()))</span>
+<span id="cb7-115"><a href="#cb7-115"></a>      .withColumn(<span class="st">"SALARY_TO"</span>, F.col(<span class="st">"SALARY_TO"</span>).cast(T.DoubleType()))</span>
+<span id="cb7-116"><a href="#cb7-116"></a>      .withColumn(<span class="st">"MAX_YEARS_EXPERIENCE"</span>, F.col(<span class="st">"MAX_YEARS_EXPERIENCE"</span>).cast(T.DoubleType()))</span>
+<span id="cb7-117"><a href="#cb7-117"></a>)</span>
+<span id="cb7-118"><a href="#cb7-118"></a><span class="co"># Handle missing values</span></span>
+<span id="cb7-119"><a href="#cb7-119"></a><span class="co"># Fill missing numeric values with 0 (or another placeholder if desired)</span></span>
+<span id="cb7-120"><a href="#cb7-120"></a>clean_df <span class="op">=</span> clean_df.fillna({<span class="st">"SALARY_FROM"</span>: <span class="dv">0</span>, <span class="st">"SALARY_TO"</span>: <span class="dv">0</span>, <span class="st">"MAX_YEARS_EXPERIENCE"</span>: <span class="dv">0</span>})</span>
+<span id="cb7-121"><a href="#cb7-121"></a></span>
+<span id="cb7-122"><a href="#cb7-122"></a><span class="co"># Optional: Calculate average salary column for convenience</span></span>
+<span id="cb7-123"><a href="#cb7-123"></a>clean_df <span class="op">=</span> clean_df.withColumn(</span>
+<span id="cb7-124"><a href="#cb7-124"></a>    <span class="st">"AVERAGE_SALARY"</span>,</span>
+<span id="cb7-125"><a href="#cb7-125"></a>    (F.col(<span class="st">"SALARY_FROM"</span>) <span class="op">+</span> F.col(<span class="st">"SALARY_TO"</span>)) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb7-126"><a href="#cb7-126"></a>)</span>
+<span id="cb7-127"><a href="#cb7-127"></a></span>
+<span id="cb7-128"><a href="#cb7-128"></a><span class="co"># Show a quick sample</span></span>
+<span id="cb7-129"><a href="#cb7-129"></a>clean_df.select(<span class="st">"SALARY_FROM"</span>, <span class="st">"SALARY_TO"</span>, <span class="st">"AVERAGE_SALARY"</span>, <span class="st">"MAX_YEARS_EXPERIENCE"</span>).show(<span class="dv">5</span>, truncate<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb7-130"><a href="#cb7-130"></a></span>
+<span id="cb7-131"><a href="#cb7-131"></a><span class="in">```</span></span>
+<span id="cb7-132"><a href="#cb7-132"></a></span>
+<span id="cb7-133"><a href="#cb7-133"></a><span class="fu">## Save the Cleaned Dataset</span></span>
+<span id="cb7-134"><a href="#cb7-134"></a>Now that the dataset has been cleaned and typecasted, we will save it as a new CSV file for later use.</span>
+<span id="cb7-135"><a href="#cb7-135"></a></span>
+<span id="cb7-136"><a href="#cb7-136"></a></span>
+<span id="cb7-139"><a href="#cb7-139"></a><span class="in">```{python}</span></span>
+<span id="cb7-140"><a href="#cb7-140"></a><span class="co"># --- Save cleaned dataset safely ---------------------------------------------</span></span>
+<span id="cb7-141"><a href="#cb7-141"></a><span class="im">import</span> os, glob, shutil</span>
+<span id="cb7-142"><a href="#cb7-142"></a></span>
+<span id="cb7-143"><a href="#cb7-143"></a><span class="co"># keep only the columns you need downstream (edit as needed)</span></span>
+<span id="cb7-144"><a href="#cb7-144"></a>cols_to_keep <span class="op">=</span> [c <span class="cf">for</span> c <span class="kw">in</span> [</span>
+<span id="cb7-145"><a href="#cb7-145"></a>    <span class="st">"SALARY_FROM"</span>,<span class="st">"SALARY_TO"</span>,<span class="st">"AVERAGE_SALARY"</span>,<span class="st">"MAX_YEARS_EXPERIENCE"</span>,</span>
+<span id="cb7-146"><a href="#cb7-146"></a>    <span class="co"># "EDUCATION_NAME","REMOTE_TYPE_NAME","LOT_V6_SPECIALIZED_OCCUPATION_NAME",</span></span>
+<span id="cb7-147"><a href="#cb7-147"></a>] <span class="cf">if</span> c <span class="kw">in</span> clean_df.columns]</span>
+<span id="cb7-148"><a href="#cb7-148"></a></span>
+<span id="cb7-149"><a href="#cb7-149"></a>tmp_dir   <span class="op">=</span> <span class="st">"_tmp_clean_csv"</span></span>
+<span id="cb7-150"><a href="#cb7-150"></a>final_csv <span class="op">=</span> <span class="st">"data/lightcast_cleaned.csv"</span></span>
+<span id="cb7-151"><a href="#cb7-151"></a></span>
+<span id="cb7-152"><a href="#cb7-152"></a><span class="co"># Write a single CSV part from Spark</span></span>
+<span id="cb7-153"><a href="#cb7-153"></a>(clean_df</span>
+<span id="cb7-154"><a href="#cb7-154"></a> .select(cols_to_keep) <span class="cf">if</span> cols_to_keep <span class="cf">else</span> clean_df</span>
+<span id="cb7-155"><a href="#cb7-155"></a>).coalesce(<span class="dv">1</span>).write.mode(<span class="st">"overwrite"</span>).option(<span class="st">"header"</span>,<span class="st">"true"</span>).csv(tmp_dir)</span>
+<span id="cb7-156"><a href="#cb7-156"></a></span>
+<span id="cb7-157"><a href="#cb7-157"></a><span class="co"># Move part-*.csv to final path</span></span>
+<span id="cb7-158"><a href="#cb7-158"></a>part_files <span class="op">=</span> glob.glob(os.path.join(tmp_dir, <span class="st">"part-*.csv"</span>))</span>
+<span id="cb7-159"><a href="#cb7-159"></a><span class="cf">if</span> <span class="kw">not</span> part_files:</span>
+<span id="cb7-160"><a href="#cb7-160"></a>    <span class="cf">raise</span> <span class="pp">RuntimeError</span>(<span class="st">"No part file found after Spark write."</span>)</span>
+<span id="cb7-161"><a href="#cb7-161"></a><span class="cf">if</span> os.path.exists(final_csv):</span>
+<span id="cb7-162"><a href="#cb7-162"></a>    os.remove(final_csv)</span>
+<span id="cb7-163"><a href="#cb7-163"></a>shutil.move(part_files[<span class="dv">0</span>], final_csv)</span>
+<span id="cb7-164"><a href="#cb7-164"></a>shutil.rmtree(tmp_dir, ignore_errors<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb7-165"><a href="#cb7-165"></a></span>
+<span id="cb7-166"><a href="#cb7-166"></a><span class="bu">print</span>(<span class="st">"✅ Cleaned dataset saved."</span>)</span>
+<span id="cb7-167"><a href="#cb7-167"></a><span class="bu">print</span>(<span class="ss">f"📁 File location: </span><span class="sc">{</span>final_csv<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb7-168"><a href="#cb7-168"></a></span>
+<span id="cb7-169"><a href="#cb7-169"></a></span>
+<span id="cb7-170"><a href="#cb7-170"></a><span class="in">```</span></span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
