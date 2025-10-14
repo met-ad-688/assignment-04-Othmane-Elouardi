@@ -36,7 +36,6 @@ execute:
 jupyter: env
 ---
 
-# Introduction
 
 # Introduction
 The objective of this lab is to apply **PySpark** to perform regression modeling on employment data from the **Lightcast Job Postings** dataset. In this exercise, we use Spark to process and prepare a large dataset for salary prediction, engineer relevant features from structured columns, and train a **Linear Regression** model. We will evaluate model performance using **RMSE** and **R²**, visualize predictions through diagnostic plots, and conclude by pushing the completed analysis to GitHub for submission.
@@ -51,7 +50,7 @@ This approach enables us to efficiently handle large datasets within the EC2 env
 from pyspark.sql import SparkSession
 import os
 
-# Initialize Spark session (optimized for EC2 memory limits)
+# Initialize Spark session 
 spark = (
     SparkSession.builder
     .appName("LightcastData")
@@ -95,10 +94,6 @@ Feature Engineering is a crucial step in preparing data for machine learning:
 
 ```{python}
 # Feature Engineering
-# Feature Engineering is a crucial step in preparing data for machine learning.
-# This step selects variables, handles missing values, encodes categorical features,
-# assembles the final feature vector, and splits data into training and testing sets.
-
 from pyspark.sql.functions import col, countDistinct
 from pyspark.ml.feature import StringIndexer, OneHotEncoder, VectorAssembler
 
@@ -225,4 +220,113 @@ print(f"({test_df.count()}, {len(test_df.columns)})")
 ```
 
 
+# Linear Regression
+A linear regression model was fit on the training set using the normal solver to enable coefficient inference.  
+Model performance was evaluated on both the training and testing sets, and the coefficient table was reported with standard errors, t-values, p-values, and 95% confidence intervals.
 
+```{python}
+# Linear Regression 
+
+from pyspark.ml.regression import LinearRegression
+import pandas as pd, numpy as np, os
+
+# 0) Require engineered features
+if "df_fe" not in globals():
+    raise RuntimeError("df_fe not found. Run the Feature Engineering section first.")
+
+# 1) Ensure train/test exist
+if "train_df" not in globals() or "test_df" not in globals():
+    train_df, test_df = df_fe.randomSplit([0.8, 0.2], seed=42)
+
+# 2) Fit model (normal solver for inference)
+if "lr_model" not in globals():
+    lr = LinearRegression(featuresCol="features", labelCol="label",
+                          predictionCol="prediction", solver="normal",
+                          regParam=0.0, elasticNetParam=0.0)
+    lr_model = lr.fit(train_df)
+
+# 3) Metrics
+train_sum = lr_model.summary
+test_sum  = lr_model.evaluate(test_df)
+
+print("=== Training Metrics ===")
+print("R²:", train_sum.r2)
+print("RMSE:", train_sum.rootMeanSquaredError)
+print("MAE:", train_sum.meanAbsoluteError)
+
+print("\n=== Test Metrics ===")
+print("R²:", test_sum.r2)
+print("RMSE:", test_sum.rootMeanSquaredError)
+print("MAE:", test_sum.meanAbsoluteError)
+
+# 4) Safe getters for inference arrays (may be None / include intercept)
+def safe(getter):
+    try:
+        return getter()
+    except Exception:
+        return None
+
+se_all = safe(lambda: train_sum.coefficientStandardErrors)
+t_all  = safe(lambda: train_sum.tValues)
+p_all  = safe(lambda: train_sum.pValues)
+
+# 5) Recover feature names from VectorAssembler metadata
+def get_feature_names(df, features_col="features", n=None):
+    meta = df.schema[features_col].metadata
+    names = []
+    if "ml_attr" in meta and "attrs" in meta["ml_attr"]:
+        for k in ("binary","numeric"):
+            for a in sorted(meta["ml_attr"]["attrs"].get(k, []), key=lambda x: x["idx"]):
+                names.append(a["name"])
+    return names if names else [f"f{i}" for i in range(n or 0)]
+
+coefs = lr_model.coefficients.toArray()
+names = get_feature_names(df_fe, n=len(coefs))
+
+def split_intercept(arr, n_feat):
+    if arr is None: return (None, None)
+    if len(arr) == n_feat + 1: return (arr[0], arr[1:])
+    if len(arr) == n_feat:     return (None, arr)
+    return (None, None)
+
+se_int, se_feat = split_intercept(se_all, len(coefs))
+t_int,  t_feat  = split_intercept(t_all,  len(coefs))
+p_int,  p_feat  = split_intercept(p_all,  len(coefs))
+
+# 6) Build and save coefficients table (works with or without inference)
+feat_df = pd.DataFrame({
+    "feature": names,
+    "coef": coefs,
+    "std_err": se_feat if se_feat is not None else [None]*len(coefs),
+    "t_value": t_feat if t_feat is not None else [None]*len(coefs),
+    "p_value": p_feat if p_feat is not None else [None]*len(coefs),
+})
+
+if se_feat is not None:
+    se_arr = np.asarray(se_feat, dtype=float)
+    feat_df["ci_lower_95"] = coefs - 1.96 * se_arr
+    feat_df["ci_upper_95"] = coefs + 1.96 * se_arr
+else:
+    feat_df["ci_lower_95"] = None
+    feat_df["ci_upper_95"] = None
+
+coef_df = pd.concat([
+    pd.DataFrame([{
+        "feature": "(Intercept)",
+        "coef": lr_model.intercept,
+        "std_err": se_int,
+        "t_value": t_int,
+        "p_value": p_int,
+        "ci_lower_95": None,
+        "ci_upper_95": None
+    }]),
+    feat_df
+], ignore_index=True)
+
+os.makedirs("_output", exist_ok=True)
+coef_path = "_output/lr_coefficients_fullrank.csv"
+coef_df.to_csv(coef_path, index=False)
+print(f"\nSaved coefficients table to {coef_path}")
+
+
+```
