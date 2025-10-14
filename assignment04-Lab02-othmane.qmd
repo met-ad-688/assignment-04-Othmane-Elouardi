@@ -127,7 +127,7 @@ clean_df.select("SALARY_FROM", "SALARY_TO", "AVERAGE_SALARY", "MAX_YEARS_EXPERIE
 ```
 
 ## Save the Cleaned Dataset
-Now that the dataset has been cleaned and typecasted, we will save it as a new CSV file for later use.
+Now that the dataset has been cleaned and typecasted, it is saved as a new CSV file for later use.
 
 
 ```{python}

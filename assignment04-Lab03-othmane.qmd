@@ -1,0 +1,83 @@
+---
+title: "Assignment 04 — Lab 03"
+subtitle: "Regression Modeling on Employment Data"
+author:
+  - name: "Othmane Elouardi"
+    affiliations:
+      - id: bu
+        name: "Boston University"
+        city: "Boston"
+        state: "MA"
+date: "2025-10-08"
+number-sections: true
+format:
+  html:
+    theme:
+      light: lux
+      dark: slate
+    toc: true
+    toc-depth: 3
+    toc-location: right
+    smooth-scroll: true
+    code-fold: true
+    code-tools: true
+    code-line-numbers: true
+    highlight-style: a11y
+    page-layout: article
+    css: styles.css
+    grid:
+      body-width: 900px
+      margin-width: 280px
+execute:
+  echo: true
+  warning: false
+  error: false
+  freeze: auto
+jupyter: env
+---
+
+# Introduction
+
+# Introduction
+The objective of this lab is to apply **PySpark** to perform regression modeling on employment data from the **Lightcast Job Postings** dataset. In this exercise, we use Spark to process and prepare a large dataset for salary prediction, engineer relevant features from structured columns, and train a **Linear Regression** model. We will evaluate model performance using **RMSE** and **R²**, visualize predictions through diagnostic plots, and conclude by pushing the completed analysis to GitHub for submission.
+
+# Load the Dataset
+In this step, we use **PySpark** to load the *Lightcast Job Postings* dataset into a Spark DataFrame.  
+This approach enables us to efficiently handle large datasets within the EC2 environment before proceeding with feature engineering and regression analysis.
+
+```{python}
+# Load the Lightcast dataset with PySpark
+
+from pyspark.sql import SparkSession
+import os
+
+# Initialize Spark session (optimized for EC2 memory limits)
+spark = (
+    SparkSession.builder
+    .appName("LightcastData")
+    .config("spark.driver.memory", "1g")
+    .getOrCreate()
+)
+
+# Define dataset path
+csv_path = "data/lightcast_job_postings.csv"
+
+# Check path validity
+if not os.path.exists(csv_path):
+    raise FileNotFoundError(f"❌ Could not find {csv_path}. Please ensure the file exists in the data/ folder.")
+
+# Load dataset
+df = (
+    spark.read
+    .option("header", "true")       # First row as headers
+    .option("inferSchema", "true")  # Auto-detect data types
+    .option("multiLine", "true")    # Handle multi-line text fields
+    .option("escape", "\"")         # Handle embedded quotes
+    .csv(csv_path)
+)
+
+# Confirm load success
+print("✅ Dataset successfully loaded!")
+df.printSchema()
+df.show(5, truncate=False)
+```
