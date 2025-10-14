@@ -42,7 +42,7 @@ jupyter: env
 The objective of this lab is to apply **PySpark** to perform regression modeling on employment data from the **Lightcast Job Postings** dataset. In this exercise, we use Spark to process and prepare a large dataset for salary prediction, engineer relevant features from structured columns, and train a **Linear Regression** model. We will evaluate model performance using **RMSE** and **R²**, visualize predictions through diagnostic plots, and conclude by pushing the completed analysis to GitHub for submission.
 
 # Load the Dataset
-In this step, we use **PySpark** to load the *Lightcast Job Postings* dataset into a Spark DataFrame.  
+ **PySpark** is used to load the *Lightcast Job Postings* dataset into a Spark DataFrame.  
 This approach enables us to efficiently handle large datasets within the EC2 environment before proceeding with feature engineering and regression analysis.
 
 ```{python}
@@ -80,4 +80,126 @@ df = (
 print("✅ Dataset successfully loaded!")
 df.printSchema()
 df.show(5, truncate=False)
+```
+
+
+# Feature Engineering
+
+Feature Engineering is a crucial step in preparing data for machine learning:
+
+1. **Drop rows with missing values** in the target and key features.  
+2. **Choose 3 predictors** (2 continuous + 1 categorical) and the dependent variable **salary**.  
+3. **Encode** categorical variables using `StringIndexer` + `OneHotEncoder`.  
+4. **Assemble** features into a single vector using `VectorAssembler`.  
+5. **Split** the data into training and testing sets.
+
+```{python}
+# Feature Engineering
+# Feature Engineering is a crucial step in preparing data for machine learning.
+# This step selects variables, handles missing values, encodes categorical features,
+# assembles the final feature vector, and splits data into training and testing sets.
+
+from pyspark.sql.functions import col, countDistinct
+from pyspark.ml.feature import StringIndexer, OneHotEncoder, VectorAssembler
+
+# Display columns and data types for reference
+print("Columns and data types:")
+for name, dtype in df.dtypes:
+    print(f" - {name}: {dtype}")
+
+# Helper to pick the first available column from a list
+def first_existing(candidates, schema_cols):
+    for c in candidates:
+        if c in schema_cols:
+            return c
+    return None
+
+# Extract lists of column names by type
+schema_cols = [c for c, _ in df.dtypes]
+num_cols = [c for c, t in df.dtypes if t in ("int", "double", "float")]
+str_cols = [c for c, t in df.dtypes if t == "string"]
+
+# Define the target column (salary)
+target = first_existing(["salary", "SALARY", "avg_salary", "median_salary"], schema_cols)
+if not target:
+    raise ValueError("❌ No salary column found. Please verify dataset headers.")
+
+# Choose continuous variables
+cont1 = first_existing(
+    ["min_years_experience", "MIN_YEARS_EXPERIENCE", "experience_min", "required_experience_min"],
+    schema_cols
+)
+cont2 = first_existing(
+    ["max_years_experience", "MAX_YEARS_EXPERIENCE", "experience_max", "required_experience_max"],
+    schema_cols
+)
+
+# Fallback continuous columns if none found
+avoid = {target, "ID", "id", "DUPLICATES", "duplicates"}
+fallback_nums = [c for c in num_cols if c not in avoid]
+if cont1 is None and fallback_nums:
+    cont1 = fallback_nums[0]
+if cont2 is None and len(fallback_nums) > 1:
+    cont2 = fallback_nums[1]
+
+# Choose categorical variable
+cat1 = first_existing(
+    [
+        "remote_type_name", "REMOTE_TYPE_NAME", "employment_type", "EMPLOYMENT_TYPE",
+        "education_level", "EDUCATION_LEVEL", "experience_level", "EXPERIENCE_LEVEL",
+        "work_type", "WORK_TYPE", "state", "STATE"
+    ],
+    schema_cols
+)
+
+# Fallback: pick a low-cardinality string column automatically
+if cat1 is None:
+    for c in str_cols[:25]:
+        try:
+            k = df.select(countDistinct(col(c)).alias("k")).collect()[0]["k"]
+            if 2 <= k <= 30:
+                cat1 = c
+                print(f"✅ Auto-selected categorical: {cat1} (distinct={k})")
+                break
+        except Exception:
+            pass
+
+# Validate selections
+chosen_cont = [c for c in [cont1, cont2] if c]
+if len(chosen_cont) < 2 or cat1 is None:
+    raise ValueError(
+        f"⚠️ Not enough predictors found.\n"
+        f"Target: {target}\n"
+        f"Continuous: {chosen_cont}\n"
+        f"Categorical: {cat1}\n"
+        "Please check column names above and manually assign predictors."
+    )
+
+print("✅ Selected columns:")
+print("  Target (y):", target)
+print("  Continuous (x1, x2):", chosen_cont)
+print("  Categorical (x3):", cat1)
+
+# Drop rows with missing values
+cols_needed = [target] + chosen_cont + [cat1]
+df_clean = df.select(*cols_needed).dropna(subset=cols_needed)
+print(f"Rows before cleaning: {df.count():,} | after cleaning: {df_clean.count():,}")
+
+# Encode categorical variable
+idx_col = f"{cat1}_idx"
+oh_col = f"{cat1}_oh"
+indexer = StringIndexer(inputCol=cat1, outputCol=idx_col, handleInvalid="keep")
+encoder = OneHotEncoder(inputCols=[idx_col], outputCols=[oh_col])
+
+df_indexed = indexer.fit(df_clean).transform(df_clean)
+df_encoded = encoder.fit(df_indexed).transform(df_indexed)
+
+# Assemble final features
+assembler = VectorAssembler(inputCols=chosen_cont + [oh_col], outputCol="features")
+df_fe = assembler.transform(df_encoded).select(col(target).alias("label"), "features")
+
+print("✅ Schema after feature engineering:")
+df_fe.printSchema()
+df_fe.show(5, truncate=False)
+
 ```
