@@ -203,3 +203,26 @@ df_fe.printSchema()
 df_fe.show(5, truncate=False)
 
 ```
+
+# Train/Test Split
+A random split was performed to ensure a balanced and representative sample of the data.  
+A fixed random seed was used for reproducibility. In this lab, an **80 % – 20 %** split was applied, which is a standard proportion providing sufficient data for training while retaining a meaningful portion for testing and evaluation.
+
+```{python}
+# Train/Test Split
+# Perform an 80/20 random split of the dataset with a fixed random seed for reproducibility.
+
+train_df, test_df = df_fe.randomSplit([0.8, 0.2], seed=42)
+
+# Display sizes of train and test sets
+print(f"Training set: {train_df.count():,} rows")
+print(f"Testing set:  {test_df.count():,} rows")
+
+# Print tuple format for clarity and comparison with lab PDF
+print(f"({train_df.count()}, {len(train_df.columns)})")
+print(f"({test_df.count()}, {len(test_df.columns)})")
+
+```
+
+
+

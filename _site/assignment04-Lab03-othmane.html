@@ -340,6 +340,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#introduction-1" id="toc-introduction-1" class="nav-link" data-scroll-target="#introduction-1"><span class="header-section-number">2</span> Introduction</a></li>
   <li><a href="#load-the-dataset" id="toc-load-the-dataset" class="nav-link" data-scroll-target="#load-the-dataset"><span class="header-section-number">3</span> Load the Dataset</a></li>
   <li><a href="#feature-engineering" id="toc-feature-engineering" class="nav-link" data-scroll-target="#feature-engineering"><span class="header-section-number">4</span> Feature Engineering</a></li>
+  <li><a href="#traintest-split" id="toc-traintest-split" class="nav-link" data-scroll-target="#traintest-split"><span class="header-section-number">5</span> Train/Test Split</a></li>
   </ul>
 </nav>
     </div>
@@ -397,7 +398,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h1 data-number="3"><span class="header-section-number">3</span> Load the Dataset</h1>
 <p><strong>PySpark</strong> is used to load the <em>Lightcast Job Postings</em> dataset into a Spark DataFrame.<br>
 This approach enables us to efficiently handle large datasets within the EC2 environment before proceeding with feature engineering and regression analysis.</p>
-<div id="b41695e3" class="cell" data-execution_count="1">
+<div id="25b165cd" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1"></a><span class="co"># Load the Lightcast dataset with PySpark</span></span>
@@ -597,7 +598,7 @@ only showing top 5 rows</code></pre>
 </li>
 <li><strong>Split</strong> the data into training and testing sets.</li>
 </ol>
-<div id="d8c077d9" class="cell" data-execution_count="2">
+<div id="e2b74a5f" class="cell" data-execution_count="2">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1"></a><span class="co"># Feature Engineering</span></span>
@@ -865,6 +866,40 @@ root
 |136950|[3.0,3.0,0.0,1.0,0.0,0.0]|
 +------+-------------------------+
 only showing top 5 rows</code></pre>
+</div>
+</div>
+</section>
+<section id="traintest-split" class="level1" data-number="5">
+<h1 data-number="5"><span class="header-section-number">5</span> Train/Test Split</h1>
+<p>A random split was performed to ensure a balanced and representative sample of the data.<br>
+A fixed random seed was used for reproducibility. In this lab, an <strong>80 % – 20 %</strong> split was applied, which is a standard proportion providing sufficient data for training while retaining a meaningful portion for testing and evaluation.</p>
+<div id="d873fe26" class="cell" data-execution_count="3">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1"></a><span class="co"># Train/Test Split</span></span>
+<span id="cb7-2"><a href="#cb7-2"></a><span class="co"># Perform an 80/20 random split of the dataset with a fixed random seed for reproducibility.</span></span>
+<span id="cb7-3"><a href="#cb7-3"></a></span>
+<span id="cb7-4"><a href="#cb7-4"></a>train_df, test_df <span class="op">=</span> df_fe.randomSplit([<span class="fl">0.8</span>, <span class="fl">0.2</span>], seed<span class="op">=</span><span class="dv">42</span>)</span>
+<span id="cb7-5"><a href="#cb7-5"></a></span>
+<span id="cb7-6"><a href="#cb7-6"></a><span class="co"># Display sizes of train and test sets</span></span>
+<span id="cb7-7"><a href="#cb7-7"></a><span class="bu">print</span>(<span class="ss">f"Training set: </span><span class="sc">{</span>train_df<span class="sc">.</span>count()<span class="sc">:,}</span><span class="ss"> rows"</span>)</span>
+<span id="cb7-8"><a href="#cb7-8"></a><span class="bu">print</span>(<span class="ss">f"Testing set:  </span><span class="sc">{</span>test_df<span class="sc">.</span>count()<span class="sc">:,}</span><span class="ss"> rows"</span>)</span>
+<span id="cb7-9"><a href="#cb7-9"></a></span>
+<span id="cb7-10"><a href="#cb7-10"></a><span class="co"># Print tuple format for clarity and comparison with lab PDF</span></span>
+<span id="cb7-11"><a href="#cb7-11"></a><span class="bu">print</span>(<span class="ss">f"(</span><span class="sc">{</span>train_df<span class="sc">.</span>count()<span class="sc">}</span><span class="ss">, </span><span class="sc">{</span><span class="bu">len</span>(train_df.columns)<span class="sc">}</span><span class="ss">)"</span>)</span>
+<span id="cb7-12"><a href="#cb7-12"></a><span class="bu">print</span>(<span class="ss">f"(</span><span class="sc">{</span>test_df<span class="sc">.</span>count()<span class="sc">}</span><span class="ss">, </span><span class="sc">{</span><span class="bu">len</span>(test_df.columns)<span class="sc">}</span><span class="ss">)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Training set: 3,060 rows</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Testing set:  696 rows</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>(3060, 2)</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>(696, 2)</code></pre>
 </div>
 </div>
 
@@ -1338,211 +1373,233 @@ only showing top 5 rows</code></pre>
     }
   });
   </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7" data-shortcodes="false"><pre class="sourceCode numberSource markdown number-lines code-with-copy"><code class="sourceCode markdown"><span id="cb7-1"><a href="#cb7-1"></a><span class="co">---</span></span>
-<span id="cb7-2"><a href="#cb7-2"></a><span class="an">title:</span><span class="co"> "Assignment 04 — Lab 03"</span></span>
-<span id="cb7-3"><a href="#cb7-3"></a><span class="an">subtitle:</span><span class="co"> "Regression Modeling on Employment Data"</span></span>
-<span id="cb7-4"><a href="#cb7-4"></a><span class="an">author:</span></span>
-<span id="cb7-5"><a href="#cb7-5"></a><span class="co">  - name: "Othmane Elouardi"</span></span>
-<span id="cb7-6"><a href="#cb7-6"></a><span class="co">    affiliations:</span></span>
-<span id="cb7-7"><a href="#cb7-7"></a><span class="co">      - id: bu</span></span>
-<span id="cb7-8"><a href="#cb7-8"></a><span class="co">        name: "Boston University"</span></span>
-<span id="cb7-9"><a href="#cb7-9"></a><span class="co">        city: "Boston"</span></span>
-<span id="cb7-10"><a href="#cb7-10"></a><span class="co">        state: "MA"</span></span>
-<span id="cb7-11"><a href="#cb7-11"></a><span class="an">date:</span><span class="co"> "2025-10-08"</span></span>
-<span id="cb7-12"><a href="#cb7-12"></a><span class="an">number-sections:</span><span class="co"> true</span></span>
-<span id="cb7-13"><a href="#cb7-13"></a><span class="an">format:</span></span>
-<span id="cb7-14"><a href="#cb7-14"></a><span class="co">  html:</span></span>
-<span id="cb7-15"><a href="#cb7-15"></a><span class="co">    theme:</span></span>
-<span id="cb7-16"><a href="#cb7-16"></a><span class="co">      light: lux</span></span>
-<span id="cb7-17"><a href="#cb7-17"></a><span class="co">      dark: slate</span></span>
-<span id="cb7-18"><a href="#cb7-18"></a><span class="co">    toc: true</span></span>
-<span id="cb7-19"><a href="#cb7-19"></a><span class="co">    toc-depth: 3</span></span>
-<span id="cb7-20"><a href="#cb7-20"></a><span class="co">    toc-location: right</span></span>
-<span id="cb7-21"><a href="#cb7-21"></a><span class="co">    smooth-scroll: true</span></span>
-<span id="cb7-22"><a href="#cb7-22"></a><span class="co">    code-fold: true</span></span>
-<span id="cb7-23"><a href="#cb7-23"></a><span class="co">    code-tools: true</span></span>
-<span id="cb7-24"><a href="#cb7-24"></a><span class="co">    code-line-numbers: true</span></span>
-<span id="cb7-25"><a href="#cb7-25"></a><span class="co">    highlight-style: a11y</span></span>
-<span id="cb7-26"><a href="#cb7-26"></a><span class="co">    page-layout: article</span></span>
-<span id="cb7-27"><a href="#cb7-27"></a><span class="co">    css: styles.css</span></span>
-<span id="cb7-28"><a href="#cb7-28"></a><span class="co">    grid:</span></span>
-<span id="cb7-29"><a href="#cb7-29"></a><span class="co">      body-width: 900px</span></span>
-<span id="cb7-30"><a href="#cb7-30"></a><span class="co">      margin-width: 280px</span></span>
-<span id="cb7-31"><a href="#cb7-31"></a><span class="an">execute:</span></span>
-<span id="cb7-32"><a href="#cb7-32"></a><span class="co">  echo: true</span></span>
-<span id="cb7-33"><a href="#cb7-33"></a><span class="co">  warning: false</span></span>
-<span id="cb7-34"><a href="#cb7-34"></a><span class="co">  error: false</span></span>
-<span id="cb7-35"><a href="#cb7-35"></a><span class="co">  freeze: auto</span></span>
-<span id="cb7-36"><a href="#cb7-36"></a><span class="an">jupyter:</span><span class="co"> env</span></span>
-<span id="cb7-37"><a href="#cb7-37"></a><span class="co">---</span></span>
-<span id="cb7-38"><a href="#cb7-38"></a></span>
-<span id="cb7-39"><a href="#cb7-39"></a><span class="fu"># Introduction</span></span>
-<span id="cb7-40"><a href="#cb7-40"></a></span>
-<span id="cb7-41"><a href="#cb7-41"></a><span class="fu"># Introduction</span></span>
-<span id="cb7-42"><a href="#cb7-42"></a>The objective of this lab is to apply **PySpark** to perform regression modeling on employment data from the **Lightcast Job Postings** dataset. In this exercise, we use Spark to process and prepare a large dataset for salary prediction, engineer relevant features from structured columns, and train a **Linear Regression** model. We will evaluate model performance using **RMSE** and **R²**, visualize predictions through diagnostic plots, and conclude by pushing the completed analysis to GitHub for submission.</span>
-<span id="cb7-43"><a href="#cb7-43"></a></span>
-<span id="cb7-44"><a href="#cb7-44"></a><span class="fu"># Load the Dataset</span></span>
-<span id="cb7-45"><a href="#cb7-45"></a> **PySpark** is used to load the *Lightcast Job Postings* dataset into a Spark DataFrame.  </span>
-<span id="cb7-46"><a href="#cb7-46"></a>This approach enables us to efficiently handle large datasets within the EC2 environment before proceeding with feature engineering and regression analysis.</span>
-<span id="cb7-47"><a href="#cb7-47"></a></span>
-<span id="cb7-50"><a href="#cb7-50"></a><span class="in">```{python}</span></span>
-<span id="cb7-51"><a href="#cb7-51"></a><span class="co"># Load the Lightcast dataset with PySpark</span></span>
-<span id="cb7-52"><a href="#cb7-52"></a></span>
-<span id="cb7-53"><a href="#cb7-53"></a><span class="im">from</span> pyspark.sql <span class="im">import</span> SparkSession</span>
-<span id="cb7-54"><a href="#cb7-54"></a><span class="im">import</span> os</span>
-<span id="cb7-55"><a href="#cb7-55"></a></span>
-<span id="cb7-56"><a href="#cb7-56"></a><span class="co"># Initialize Spark session (optimized for EC2 memory limits)</span></span>
-<span id="cb7-57"><a href="#cb7-57"></a>spark <span class="op">=</span> (</span>
-<span id="cb7-58"><a href="#cb7-58"></a>    SparkSession.builder</span>
-<span id="cb7-59"><a href="#cb7-59"></a>    .appName(<span class="st">"LightcastData"</span>)</span>
-<span id="cb7-60"><a href="#cb7-60"></a>    .config(<span class="st">"spark.driver.memory"</span>, <span class="st">"1g"</span>)</span>
-<span id="cb7-61"><a href="#cb7-61"></a>    .getOrCreate()</span>
-<span id="cb7-62"><a href="#cb7-62"></a>)</span>
-<span id="cb7-63"><a href="#cb7-63"></a></span>
-<span id="cb7-64"><a href="#cb7-64"></a><span class="co"># Define dataset path</span></span>
-<span id="cb7-65"><a href="#cb7-65"></a>csv_path <span class="op">=</span> <span class="st">"data/lightcast_job_postings.csv"</span></span>
-<span id="cb7-66"><a href="#cb7-66"></a></span>
-<span id="cb7-67"><a href="#cb7-67"></a><span class="co"># Check path validity</span></span>
-<span id="cb7-68"><a href="#cb7-68"></a><span class="cf">if</span> <span class="kw">not</span> os.path.exists(csv_path):</span>
-<span id="cb7-69"><a href="#cb7-69"></a>    <span class="cf">raise</span> <span class="pp">FileNotFoundError</span>(<span class="ss">f"❌ Could not find </span><span class="sc">{</span>csv_path<span class="sc">}</span><span class="ss">. Please ensure the file exists in the data/ folder."</span>)</span>
-<span id="cb7-70"><a href="#cb7-70"></a></span>
-<span id="cb7-71"><a href="#cb7-71"></a><span class="co"># Load dataset</span></span>
-<span id="cb7-72"><a href="#cb7-72"></a>df <span class="op">=</span> (</span>
-<span id="cb7-73"><a href="#cb7-73"></a>    spark.read</span>
-<span id="cb7-74"><a href="#cb7-74"></a>    .option(<span class="st">"header"</span>, <span class="st">"true"</span>)       <span class="co"># First row as headers</span></span>
-<span id="cb7-75"><a href="#cb7-75"></a>    .option(<span class="st">"inferSchema"</span>, <span class="st">"true"</span>)  <span class="co"># Auto-detect data types</span></span>
-<span id="cb7-76"><a href="#cb7-76"></a>    .option(<span class="st">"multiLine"</span>, <span class="st">"true"</span>)    <span class="co"># Handle multi-line text fields</span></span>
-<span id="cb7-77"><a href="#cb7-77"></a>    .option(<span class="st">"escape"</span>, <span class="st">"</span><span class="ch">\"</span><span class="st">"</span>)         <span class="co"># Handle embedded quotes</span></span>
-<span id="cb7-78"><a href="#cb7-78"></a>    .csv(csv_path)</span>
-<span id="cb7-79"><a href="#cb7-79"></a>)</span>
-<span id="cb7-80"><a href="#cb7-80"></a></span>
-<span id="cb7-81"><a href="#cb7-81"></a><span class="co"># Confirm load success</span></span>
-<span id="cb7-82"><a href="#cb7-82"></a><span class="bu">print</span>(<span class="st">"✅ Dataset successfully loaded!"</span>)</span>
-<span id="cb7-83"><a href="#cb7-83"></a>df.printSchema()</span>
-<span id="cb7-84"><a href="#cb7-84"></a>df.show(<span class="dv">5</span>, truncate<span class="op">=</span><span class="va">False</span>)</span>
-<span id="cb7-85"><a href="#cb7-85"></a><span class="in">```</span></span>
-<span id="cb7-86"><a href="#cb7-86"></a></span>
-<span id="cb7-87"><a href="#cb7-87"></a></span>
-<span id="cb7-88"><a href="#cb7-88"></a><span class="fu"># Feature Engineering</span></span>
-<span id="cb7-89"><a href="#cb7-89"></a></span>
-<span id="cb7-90"><a href="#cb7-90"></a>Feature Engineering is a crucial step in preparing data for machine learning:</span>
-<span id="cb7-91"><a href="#cb7-91"></a></span>
-<span id="cb7-92"><a href="#cb7-92"></a><span class="ss">1. </span>**Drop rows with missing values** in the target and key features.  </span>
-<span id="cb7-93"><a href="#cb7-93"></a><span class="ss">2. </span>**Choose 3 predictors** (2 continuous + 1 categorical) and the dependent variable **salary**.  </span>
-<span id="cb7-94"><a href="#cb7-94"></a><span class="ss">3. </span>**Encode** categorical variables using <span class="in">`StringIndexer`</span> + <span class="in">`OneHotEncoder`</span>.  </span>
-<span id="cb7-95"><a href="#cb7-95"></a><span class="ss">4. </span>**Assemble** features into a single vector using <span class="in">`VectorAssembler`</span>.  </span>
-<span id="cb7-96"><a href="#cb7-96"></a><span class="ss">5. </span>**Split** the data into training and testing sets.</span>
-<span id="cb7-97"><a href="#cb7-97"></a></span>
-<span id="cb7-100"><a href="#cb7-100"></a><span class="in">```{python}</span></span>
-<span id="cb7-101"><a href="#cb7-101"></a><span class="co"># Feature Engineering</span></span>
-<span id="cb7-102"><a href="#cb7-102"></a><span class="co"># Feature Engineering is a crucial step in preparing data for machine learning.</span></span>
-<span id="cb7-103"><a href="#cb7-103"></a><span class="co"># This step selects variables, handles missing values, encodes categorical features,</span></span>
-<span id="cb7-104"><a href="#cb7-104"></a><span class="co"># assembles the final feature vector, and splits data into training and testing sets.</span></span>
-<span id="cb7-105"><a href="#cb7-105"></a></span>
-<span id="cb7-106"><a href="#cb7-106"></a><span class="im">from</span> pyspark.sql.functions <span class="im">import</span> col, countDistinct</span>
-<span id="cb7-107"><a href="#cb7-107"></a><span class="im">from</span> pyspark.ml.feature <span class="im">import</span> StringIndexer, OneHotEncoder, VectorAssembler</span>
-<span id="cb7-108"><a href="#cb7-108"></a></span>
-<span id="cb7-109"><a href="#cb7-109"></a><span class="co"># Display columns and data types for reference</span></span>
-<span id="cb7-110"><a href="#cb7-110"></a><span class="bu">print</span>(<span class="st">"Columns and data types:"</span>)</span>
-<span id="cb7-111"><a href="#cb7-111"></a><span class="cf">for</span> name, dtype <span class="kw">in</span> df.dtypes:</span>
-<span id="cb7-112"><a href="#cb7-112"></a>    <span class="bu">print</span>(<span class="ss">f" - </span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>dtype<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb7-113"><a href="#cb7-113"></a></span>
-<span id="cb7-114"><a href="#cb7-114"></a><span class="co"># Helper to pick the first available column from a list</span></span>
-<span id="cb7-115"><a href="#cb7-115"></a><span class="kw">def</span> first_existing(candidates, schema_cols):</span>
-<span id="cb7-116"><a href="#cb7-116"></a>    <span class="cf">for</span> c <span class="kw">in</span> candidates:</span>
-<span id="cb7-117"><a href="#cb7-117"></a>        <span class="cf">if</span> c <span class="kw">in</span> schema_cols:</span>
-<span id="cb7-118"><a href="#cb7-118"></a>            <span class="cf">return</span> c</span>
-<span id="cb7-119"><a href="#cb7-119"></a>    <span class="cf">return</span> <span class="va">None</span></span>
-<span id="cb7-120"><a href="#cb7-120"></a></span>
-<span id="cb7-121"><a href="#cb7-121"></a><span class="co"># Extract lists of column names by type</span></span>
-<span id="cb7-122"><a href="#cb7-122"></a>schema_cols <span class="op">=</span> [c <span class="cf">for</span> c, _ <span class="kw">in</span> df.dtypes]</span>
-<span id="cb7-123"><a href="#cb7-123"></a>num_cols <span class="op">=</span> [c <span class="cf">for</span> c, t <span class="kw">in</span> df.dtypes <span class="cf">if</span> t <span class="kw">in</span> (<span class="st">"int"</span>, <span class="st">"double"</span>, <span class="st">"float"</span>)]</span>
-<span id="cb7-124"><a href="#cb7-124"></a>str_cols <span class="op">=</span> [c <span class="cf">for</span> c, t <span class="kw">in</span> df.dtypes <span class="cf">if</span> t <span class="op">==</span> <span class="st">"string"</span>]</span>
-<span id="cb7-125"><a href="#cb7-125"></a></span>
-<span id="cb7-126"><a href="#cb7-126"></a><span class="co"># Define the target column (salary)</span></span>
-<span id="cb7-127"><a href="#cb7-127"></a>target <span class="op">=</span> first_existing([<span class="st">"salary"</span>, <span class="st">"SALARY"</span>, <span class="st">"avg_salary"</span>, <span class="st">"median_salary"</span>], schema_cols)</span>
-<span id="cb7-128"><a href="#cb7-128"></a><span class="cf">if</span> <span class="kw">not</span> target:</span>
-<span id="cb7-129"><a href="#cb7-129"></a>    <span class="cf">raise</span> <span class="pp">ValueError</span>(<span class="st">"❌ No salary column found. Please verify dataset headers."</span>)</span>
-<span id="cb7-130"><a href="#cb7-130"></a></span>
-<span id="cb7-131"><a href="#cb7-131"></a><span class="co"># Choose continuous variables</span></span>
-<span id="cb7-132"><a href="#cb7-132"></a>cont1 <span class="op">=</span> first_existing(</span>
-<span id="cb7-133"><a href="#cb7-133"></a>    [<span class="st">"min_years_experience"</span>, <span class="st">"MIN_YEARS_EXPERIENCE"</span>, <span class="st">"experience_min"</span>, <span class="st">"required_experience_min"</span>],</span>
-<span id="cb7-134"><a href="#cb7-134"></a>    schema_cols</span>
-<span id="cb7-135"><a href="#cb7-135"></a>)</span>
-<span id="cb7-136"><a href="#cb7-136"></a>cont2 <span class="op">=</span> first_existing(</span>
-<span id="cb7-137"><a href="#cb7-137"></a>    [<span class="st">"max_years_experience"</span>, <span class="st">"MAX_YEARS_EXPERIENCE"</span>, <span class="st">"experience_max"</span>, <span class="st">"required_experience_max"</span>],</span>
-<span id="cb7-138"><a href="#cb7-138"></a>    schema_cols</span>
-<span id="cb7-139"><a href="#cb7-139"></a>)</span>
-<span id="cb7-140"><a href="#cb7-140"></a></span>
-<span id="cb7-141"><a href="#cb7-141"></a><span class="co"># Fallback continuous columns if none found</span></span>
-<span id="cb7-142"><a href="#cb7-142"></a>avoid <span class="op">=</span> {target, <span class="st">"ID"</span>, <span class="st">"id"</span>, <span class="st">"DUPLICATES"</span>, <span class="st">"duplicates"</span>}</span>
-<span id="cb7-143"><a href="#cb7-143"></a>fallback_nums <span class="op">=</span> [c <span class="cf">for</span> c <span class="kw">in</span> num_cols <span class="cf">if</span> c <span class="kw">not</span> <span class="kw">in</span> avoid]</span>
-<span id="cb7-144"><a href="#cb7-144"></a><span class="cf">if</span> cont1 <span class="kw">is</span> <span class="va">None</span> <span class="kw">and</span> fallback_nums:</span>
-<span id="cb7-145"><a href="#cb7-145"></a>    cont1 <span class="op">=</span> fallback_nums[<span class="dv">0</span>]</span>
-<span id="cb7-146"><a href="#cb7-146"></a><span class="cf">if</span> cont2 <span class="kw">is</span> <span class="va">None</span> <span class="kw">and</span> <span class="bu">len</span>(fallback_nums) <span class="op">&gt;</span> <span class="dv">1</span>:</span>
-<span id="cb7-147"><a href="#cb7-147"></a>    cont2 <span class="op">=</span> fallback_nums[<span class="dv">1</span>]</span>
-<span id="cb7-148"><a href="#cb7-148"></a></span>
-<span id="cb7-149"><a href="#cb7-149"></a><span class="co"># Choose categorical variable</span></span>
-<span id="cb7-150"><a href="#cb7-150"></a>cat1 <span class="op">=</span> first_existing(</span>
-<span id="cb7-151"><a href="#cb7-151"></a>    [</span>
-<span id="cb7-152"><a href="#cb7-152"></a>        <span class="st">"remote_type_name"</span>, <span class="st">"REMOTE_TYPE_NAME"</span>, <span class="st">"employment_type"</span>, <span class="st">"EMPLOYMENT_TYPE"</span>,</span>
-<span id="cb7-153"><a href="#cb7-153"></a>        <span class="st">"education_level"</span>, <span class="st">"EDUCATION_LEVEL"</span>, <span class="st">"experience_level"</span>, <span class="st">"EXPERIENCE_LEVEL"</span>,</span>
-<span id="cb7-154"><a href="#cb7-154"></a>        <span class="st">"work_type"</span>, <span class="st">"WORK_TYPE"</span>, <span class="st">"state"</span>, <span class="st">"STATE"</span></span>
-<span id="cb7-155"><a href="#cb7-155"></a>    ],</span>
-<span id="cb7-156"><a href="#cb7-156"></a>    schema_cols</span>
-<span id="cb7-157"><a href="#cb7-157"></a>)</span>
-<span id="cb7-158"><a href="#cb7-158"></a></span>
-<span id="cb7-159"><a href="#cb7-159"></a><span class="co"># Fallback: pick a low-cardinality string column automatically</span></span>
-<span id="cb7-160"><a href="#cb7-160"></a><span class="cf">if</span> cat1 <span class="kw">is</span> <span class="va">None</span>:</span>
-<span id="cb7-161"><a href="#cb7-161"></a>    <span class="cf">for</span> c <span class="kw">in</span> str_cols[:<span class="dv">25</span>]:</span>
-<span id="cb7-162"><a href="#cb7-162"></a>        <span class="cf">try</span>:</span>
-<span id="cb7-163"><a href="#cb7-163"></a>            k <span class="op">=</span> df.select(countDistinct(col(c)).alias(<span class="st">"k"</span>)).collect()[<span class="dv">0</span>][<span class="st">"k"</span>]</span>
-<span id="cb7-164"><a href="#cb7-164"></a>            <span class="cf">if</span> <span class="dv">2</span> <span class="op">&lt;=</span> k <span class="op">&lt;=</span> <span class="dv">30</span>:</span>
-<span id="cb7-165"><a href="#cb7-165"></a>                cat1 <span class="op">=</span> c</span>
-<span id="cb7-166"><a href="#cb7-166"></a>                <span class="bu">print</span>(<span class="ss">f"✅ Auto-selected categorical: </span><span class="sc">{</span>cat1<span class="sc">}</span><span class="ss"> (distinct=</span><span class="sc">{</span>k<span class="sc">}</span><span class="ss">)"</span>)</span>
-<span id="cb7-167"><a href="#cb7-167"></a>                <span class="cf">break</span></span>
-<span id="cb7-168"><a href="#cb7-168"></a>        <span class="cf">except</span> <span class="pp">Exception</span>:</span>
-<span id="cb7-169"><a href="#cb7-169"></a>            <span class="cf">pass</span></span>
-<span id="cb7-170"><a href="#cb7-170"></a></span>
-<span id="cb7-171"><a href="#cb7-171"></a><span class="co"># Validate selections</span></span>
-<span id="cb7-172"><a href="#cb7-172"></a>chosen_cont <span class="op">=</span> [c <span class="cf">for</span> c <span class="kw">in</span> [cont1, cont2] <span class="cf">if</span> c]</span>
-<span id="cb7-173"><a href="#cb7-173"></a><span class="cf">if</span> <span class="bu">len</span>(chosen_cont) <span class="op">&lt;</span> <span class="dv">2</span> <span class="kw">or</span> cat1 <span class="kw">is</span> <span class="va">None</span>:</span>
-<span id="cb7-174"><a href="#cb7-174"></a>    <span class="cf">raise</span> <span class="pp">ValueError</span>(</span>
-<span id="cb7-175"><a href="#cb7-175"></a>        <span class="ss">f"⚠️ Not enough predictors found.</span><span class="ch">\n</span><span class="ss">"</span></span>
-<span id="cb7-176"><a href="#cb7-176"></a>        <span class="ss">f"Target: </span><span class="sc">{</span>target<span class="sc">}</span><span class="ch">\n</span><span class="ss">"</span></span>
-<span id="cb7-177"><a href="#cb7-177"></a>        <span class="ss">f"Continuous: </span><span class="sc">{</span>chosen_cont<span class="sc">}</span><span class="ch">\n</span><span class="ss">"</span></span>
-<span id="cb7-178"><a href="#cb7-178"></a>        <span class="ss">f"Categorical: </span><span class="sc">{</span>cat1<span class="sc">}</span><span class="ch">\n</span><span class="ss">"</span></span>
-<span id="cb7-179"><a href="#cb7-179"></a>        <span class="st">"Please check column names above and manually assign predictors."</span></span>
-<span id="cb7-180"><a href="#cb7-180"></a>    )</span>
-<span id="cb7-181"><a href="#cb7-181"></a></span>
-<span id="cb7-182"><a href="#cb7-182"></a><span class="bu">print</span>(<span class="st">"✅ Selected columns:"</span>)</span>
-<span id="cb7-183"><a href="#cb7-183"></a><span class="bu">print</span>(<span class="st">"  Target (y):"</span>, target)</span>
-<span id="cb7-184"><a href="#cb7-184"></a><span class="bu">print</span>(<span class="st">"  Continuous (x1, x2):"</span>, chosen_cont)</span>
-<span id="cb7-185"><a href="#cb7-185"></a><span class="bu">print</span>(<span class="st">"  Categorical (x3):"</span>, cat1)</span>
-<span id="cb7-186"><a href="#cb7-186"></a></span>
-<span id="cb7-187"><a href="#cb7-187"></a><span class="co"># Drop rows with missing values</span></span>
-<span id="cb7-188"><a href="#cb7-188"></a>cols_needed <span class="op">=</span> [target] <span class="op">+</span> chosen_cont <span class="op">+</span> [cat1]</span>
-<span id="cb7-189"><a href="#cb7-189"></a>df_clean <span class="op">=</span> df.select(<span class="op">*</span>cols_needed).dropna(subset<span class="op">=</span>cols_needed)</span>
-<span id="cb7-190"><a href="#cb7-190"></a><span class="bu">print</span>(<span class="ss">f"Rows before cleaning: </span><span class="sc">{</span>df<span class="sc">.</span>count()<span class="sc">:,}</span><span class="ss"> | after cleaning: </span><span class="sc">{</span>df_clean<span class="sc">.</span>count()<span class="sc">:,}</span><span class="ss">"</span>)</span>
-<span id="cb7-191"><a href="#cb7-191"></a></span>
-<span id="cb7-192"><a href="#cb7-192"></a><span class="co"># Encode categorical variable</span></span>
-<span id="cb7-193"><a href="#cb7-193"></a>idx_col <span class="op">=</span> <span class="ss">f"</span><span class="sc">{</span>cat1<span class="sc">}</span><span class="ss">_idx"</span></span>
-<span id="cb7-194"><a href="#cb7-194"></a>oh_col <span class="op">=</span> <span class="ss">f"</span><span class="sc">{</span>cat1<span class="sc">}</span><span class="ss">_oh"</span></span>
-<span id="cb7-195"><a href="#cb7-195"></a>indexer <span class="op">=</span> StringIndexer(inputCol<span class="op">=</span>cat1, outputCol<span class="op">=</span>idx_col, handleInvalid<span class="op">=</span><span class="st">"keep"</span>)</span>
-<span id="cb7-196"><a href="#cb7-196"></a>encoder <span class="op">=</span> OneHotEncoder(inputCols<span class="op">=</span>[idx_col], outputCols<span class="op">=</span>[oh_col])</span>
-<span id="cb7-197"><a href="#cb7-197"></a></span>
-<span id="cb7-198"><a href="#cb7-198"></a>df_indexed <span class="op">=</span> indexer.fit(df_clean).transform(df_clean)</span>
-<span id="cb7-199"><a href="#cb7-199"></a>df_encoded <span class="op">=</span> encoder.fit(df_indexed).transform(df_indexed)</span>
-<span id="cb7-200"><a href="#cb7-200"></a></span>
-<span id="cb7-201"><a href="#cb7-201"></a><span class="co"># Assemble final features</span></span>
-<span id="cb7-202"><a href="#cb7-202"></a>assembler <span class="op">=</span> VectorAssembler(inputCols<span class="op">=</span>chosen_cont <span class="op">+</span> [oh_col], outputCol<span class="op">=</span><span class="st">"features"</span>)</span>
-<span id="cb7-203"><a href="#cb7-203"></a>df_fe <span class="op">=</span> assembler.transform(df_encoded).select(col(target).alias(<span class="st">"label"</span>), <span class="st">"features"</span>)</span>
-<span id="cb7-204"><a href="#cb7-204"></a></span>
-<span id="cb7-205"><a href="#cb7-205"></a><span class="bu">print</span>(<span class="st">"✅ Schema after feature engineering:"</span>)</span>
-<span id="cb7-206"><a href="#cb7-206"></a>df_fe.printSchema()</span>
-<span id="cb7-207"><a href="#cb7-207"></a>df_fe.show(<span class="dv">5</span>, truncate<span class="op">=</span><span class="va">False</span>)</span>
-<span id="cb7-208"><a href="#cb7-208"></a></span>
-<span id="cb7-209"><a href="#cb7-209"></a><span class="in">```</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12" data-shortcodes="false"><pre class="sourceCode numberSource markdown number-lines code-with-copy"><code class="sourceCode markdown"><span id="cb12-1"><a href="#cb12-1"></a><span class="co">---</span></span>
+<span id="cb12-2"><a href="#cb12-2"></a><span class="an">title:</span><span class="co"> "Assignment 04 — Lab 03"</span></span>
+<span id="cb12-3"><a href="#cb12-3"></a><span class="an">subtitle:</span><span class="co"> "Regression Modeling on Employment Data"</span></span>
+<span id="cb12-4"><a href="#cb12-4"></a><span class="an">author:</span></span>
+<span id="cb12-5"><a href="#cb12-5"></a><span class="co">  - name: "Othmane Elouardi"</span></span>
+<span id="cb12-6"><a href="#cb12-6"></a><span class="co">    affiliations:</span></span>
+<span id="cb12-7"><a href="#cb12-7"></a><span class="co">      - id: bu</span></span>
+<span id="cb12-8"><a href="#cb12-8"></a><span class="co">        name: "Boston University"</span></span>
+<span id="cb12-9"><a href="#cb12-9"></a><span class="co">        city: "Boston"</span></span>
+<span id="cb12-10"><a href="#cb12-10"></a><span class="co">        state: "MA"</span></span>
+<span id="cb12-11"><a href="#cb12-11"></a><span class="an">date:</span><span class="co"> "2025-10-08"</span></span>
+<span id="cb12-12"><a href="#cb12-12"></a><span class="an">number-sections:</span><span class="co"> true</span></span>
+<span id="cb12-13"><a href="#cb12-13"></a><span class="an">format:</span></span>
+<span id="cb12-14"><a href="#cb12-14"></a><span class="co">  html:</span></span>
+<span id="cb12-15"><a href="#cb12-15"></a><span class="co">    theme:</span></span>
+<span id="cb12-16"><a href="#cb12-16"></a><span class="co">      light: lux</span></span>
+<span id="cb12-17"><a href="#cb12-17"></a><span class="co">      dark: slate</span></span>
+<span id="cb12-18"><a href="#cb12-18"></a><span class="co">    toc: true</span></span>
+<span id="cb12-19"><a href="#cb12-19"></a><span class="co">    toc-depth: 3</span></span>
+<span id="cb12-20"><a href="#cb12-20"></a><span class="co">    toc-location: right</span></span>
+<span id="cb12-21"><a href="#cb12-21"></a><span class="co">    smooth-scroll: true</span></span>
+<span id="cb12-22"><a href="#cb12-22"></a><span class="co">    code-fold: true</span></span>
+<span id="cb12-23"><a href="#cb12-23"></a><span class="co">    code-tools: true</span></span>
+<span id="cb12-24"><a href="#cb12-24"></a><span class="co">    code-line-numbers: true</span></span>
+<span id="cb12-25"><a href="#cb12-25"></a><span class="co">    highlight-style: a11y</span></span>
+<span id="cb12-26"><a href="#cb12-26"></a><span class="co">    page-layout: article</span></span>
+<span id="cb12-27"><a href="#cb12-27"></a><span class="co">    css: styles.css</span></span>
+<span id="cb12-28"><a href="#cb12-28"></a><span class="co">    grid:</span></span>
+<span id="cb12-29"><a href="#cb12-29"></a><span class="co">      body-width: 900px</span></span>
+<span id="cb12-30"><a href="#cb12-30"></a><span class="co">      margin-width: 280px</span></span>
+<span id="cb12-31"><a href="#cb12-31"></a><span class="an">execute:</span></span>
+<span id="cb12-32"><a href="#cb12-32"></a><span class="co">  echo: true</span></span>
+<span id="cb12-33"><a href="#cb12-33"></a><span class="co">  warning: false</span></span>
+<span id="cb12-34"><a href="#cb12-34"></a><span class="co">  error: false</span></span>
+<span id="cb12-35"><a href="#cb12-35"></a><span class="co">  freeze: auto</span></span>
+<span id="cb12-36"><a href="#cb12-36"></a><span class="an">jupyter:</span><span class="co"> env</span></span>
+<span id="cb12-37"><a href="#cb12-37"></a><span class="co">---</span></span>
+<span id="cb12-38"><a href="#cb12-38"></a></span>
+<span id="cb12-39"><a href="#cb12-39"></a><span class="fu"># Introduction</span></span>
+<span id="cb12-40"><a href="#cb12-40"></a></span>
+<span id="cb12-41"><a href="#cb12-41"></a><span class="fu"># Introduction</span></span>
+<span id="cb12-42"><a href="#cb12-42"></a>The objective of this lab is to apply **PySpark** to perform regression modeling on employment data from the **Lightcast Job Postings** dataset. In this exercise, we use Spark to process and prepare a large dataset for salary prediction, engineer relevant features from structured columns, and train a **Linear Regression** model. We will evaluate model performance using **RMSE** and **R²**, visualize predictions through diagnostic plots, and conclude by pushing the completed analysis to GitHub for submission.</span>
+<span id="cb12-43"><a href="#cb12-43"></a></span>
+<span id="cb12-44"><a href="#cb12-44"></a><span class="fu"># Load the Dataset</span></span>
+<span id="cb12-45"><a href="#cb12-45"></a> **PySpark** is used to load the *Lightcast Job Postings* dataset into a Spark DataFrame.  </span>
+<span id="cb12-46"><a href="#cb12-46"></a>This approach enables us to efficiently handle large datasets within the EC2 environment before proceeding with feature engineering and regression analysis.</span>
+<span id="cb12-47"><a href="#cb12-47"></a></span>
+<span id="cb12-50"><a href="#cb12-50"></a><span class="in">```{python}</span></span>
+<span id="cb12-51"><a href="#cb12-51"></a><span class="co"># Load the Lightcast dataset with PySpark</span></span>
+<span id="cb12-52"><a href="#cb12-52"></a></span>
+<span id="cb12-53"><a href="#cb12-53"></a><span class="im">from</span> pyspark.sql <span class="im">import</span> SparkSession</span>
+<span id="cb12-54"><a href="#cb12-54"></a><span class="im">import</span> os</span>
+<span id="cb12-55"><a href="#cb12-55"></a></span>
+<span id="cb12-56"><a href="#cb12-56"></a><span class="co"># Initialize Spark session (optimized for EC2 memory limits)</span></span>
+<span id="cb12-57"><a href="#cb12-57"></a>spark <span class="op">=</span> (</span>
+<span id="cb12-58"><a href="#cb12-58"></a>    SparkSession.builder</span>
+<span id="cb12-59"><a href="#cb12-59"></a>    .appName(<span class="st">"LightcastData"</span>)</span>
+<span id="cb12-60"><a href="#cb12-60"></a>    .config(<span class="st">"spark.driver.memory"</span>, <span class="st">"1g"</span>)</span>
+<span id="cb12-61"><a href="#cb12-61"></a>    .getOrCreate()</span>
+<span id="cb12-62"><a href="#cb12-62"></a>)</span>
+<span id="cb12-63"><a href="#cb12-63"></a></span>
+<span id="cb12-64"><a href="#cb12-64"></a><span class="co"># Define dataset path</span></span>
+<span id="cb12-65"><a href="#cb12-65"></a>csv_path <span class="op">=</span> <span class="st">"data/lightcast_job_postings.csv"</span></span>
+<span id="cb12-66"><a href="#cb12-66"></a></span>
+<span id="cb12-67"><a href="#cb12-67"></a><span class="co"># Check path validity</span></span>
+<span id="cb12-68"><a href="#cb12-68"></a><span class="cf">if</span> <span class="kw">not</span> os.path.exists(csv_path):</span>
+<span id="cb12-69"><a href="#cb12-69"></a>    <span class="cf">raise</span> <span class="pp">FileNotFoundError</span>(<span class="ss">f"❌ Could not find </span><span class="sc">{</span>csv_path<span class="sc">}</span><span class="ss">. Please ensure the file exists in the data/ folder."</span>)</span>
+<span id="cb12-70"><a href="#cb12-70"></a></span>
+<span id="cb12-71"><a href="#cb12-71"></a><span class="co"># Load dataset</span></span>
+<span id="cb12-72"><a href="#cb12-72"></a>df <span class="op">=</span> (</span>
+<span id="cb12-73"><a href="#cb12-73"></a>    spark.read</span>
+<span id="cb12-74"><a href="#cb12-74"></a>    .option(<span class="st">"header"</span>, <span class="st">"true"</span>)       <span class="co"># First row as headers</span></span>
+<span id="cb12-75"><a href="#cb12-75"></a>    .option(<span class="st">"inferSchema"</span>, <span class="st">"true"</span>)  <span class="co"># Auto-detect data types</span></span>
+<span id="cb12-76"><a href="#cb12-76"></a>    .option(<span class="st">"multiLine"</span>, <span class="st">"true"</span>)    <span class="co"># Handle multi-line text fields</span></span>
+<span id="cb12-77"><a href="#cb12-77"></a>    .option(<span class="st">"escape"</span>, <span class="st">"</span><span class="ch">\"</span><span class="st">"</span>)         <span class="co"># Handle embedded quotes</span></span>
+<span id="cb12-78"><a href="#cb12-78"></a>    .csv(csv_path)</span>
+<span id="cb12-79"><a href="#cb12-79"></a>)</span>
+<span id="cb12-80"><a href="#cb12-80"></a></span>
+<span id="cb12-81"><a href="#cb12-81"></a><span class="co"># Confirm load success</span></span>
+<span id="cb12-82"><a href="#cb12-82"></a><span class="bu">print</span>(<span class="st">"✅ Dataset successfully loaded!"</span>)</span>
+<span id="cb12-83"><a href="#cb12-83"></a>df.printSchema()</span>
+<span id="cb12-84"><a href="#cb12-84"></a>df.show(<span class="dv">5</span>, truncate<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb12-85"><a href="#cb12-85"></a><span class="in">```</span></span>
+<span id="cb12-86"><a href="#cb12-86"></a></span>
+<span id="cb12-87"><a href="#cb12-87"></a></span>
+<span id="cb12-88"><a href="#cb12-88"></a><span class="fu"># Feature Engineering</span></span>
+<span id="cb12-89"><a href="#cb12-89"></a></span>
+<span id="cb12-90"><a href="#cb12-90"></a>Feature Engineering is a crucial step in preparing data for machine learning:</span>
+<span id="cb12-91"><a href="#cb12-91"></a></span>
+<span id="cb12-92"><a href="#cb12-92"></a><span class="ss">1. </span>**Drop rows with missing values** in the target and key features.  </span>
+<span id="cb12-93"><a href="#cb12-93"></a><span class="ss">2. </span>**Choose 3 predictors** (2 continuous + 1 categorical) and the dependent variable **salary**.  </span>
+<span id="cb12-94"><a href="#cb12-94"></a><span class="ss">3. </span>**Encode** categorical variables using <span class="in">`StringIndexer`</span> + <span class="in">`OneHotEncoder`</span>.  </span>
+<span id="cb12-95"><a href="#cb12-95"></a><span class="ss">4. </span>**Assemble** features into a single vector using <span class="in">`VectorAssembler`</span>.  </span>
+<span id="cb12-96"><a href="#cb12-96"></a><span class="ss">5. </span>**Split** the data into training and testing sets.</span>
+<span id="cb12-97"><a href="#cb12-97"></a></span>
+<span id="cb12-100"><a href="#cb12-100"></a><span class="in">```{python}</span></span>
+<span id="cb12-101"><a href="#cb12-101"></a><span class="co"># Feature Engineering</span></span>
+<span id="cb12-102"><a href="#cb12-102"></a><span class="co"># Feature Engineering is a crucial step in preparing data for machine learning.</span></span>
+<span id="cb12-103"><a href="#cb12-103"></a><span class="co"># This step selects variables, handles missing values, encodes categorical features,</span></span>
+<span id="cb12-104"><a href="#cb12-104"></a><span class="co"># assembles the final feature vector, and splits data into training and testing sets.</span></span>
+<span id="cb12-105"><a href="#cb12-105"></a></span>
+<span id="cb12-106"><a href="#cb12-106"></a><span class="im">from</span> pyspark.sql.functions <span class="im">import</span> col, countDistinct</span>
+<span id="cb12-107"><a href="#cb12-107"></a><span class="im">from</span> pyspark.ml.feature <span class="im">import</span> StringIndexer, OneHotEncoder, VectorAssembler</span>
+<span id="cb12-108"><a href="#cb12-108"></a></span>
+<span id="cb12-109"><a href="#cb12-109"></a><span class="co"># Display columns and data types for reference</span></span>
+<span id="cb12-110"><a href="#cb12-110"></a><span class="bu">print</span>(<span class="st">"Columns and data types:"</span>)</span>
+<span id="cb12-111"><a href="#cb12-111"></a><span class="cf">for</span> name, dtype <span class="kw">in</span> df.dtypes:</span>
+<span id="cb12-112"><a href="#cb12-112"></a>    <span class="bu">print</span>(<span class="ss">f" - </span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>dtype<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb12-113"><a href="#cb12-113"></a></span>
+<span id="cb12-114"><a href="#cb12-114"></a><span class="co"># Helper to pick the first available column from a list</span></span>
+<span id="cb12-115"><a href="#cb12-115"></a><span class="kw">def</span> first_existing(candidates, schema_cols):</span>
+<span id="cb12-116"><a href="#cb12-116"></a>    <span class="cf">for</span> c <span class="kw">in</span> candidates:</span>
+<span id="cb12-117"><a href="#cb12-117"></a>        <span class="cf">if</span> c <span class="kw">in</span> schema_cols:</span>
+<span id="cb12-118"><a href="#cb12-118"></a>            <span class="cf">return</span> c</span>
+<span id="cb12-119"><a href="#cb12-119"></a>    <span class="cf">return</span> <span class="va">None</span></span>
+<span id="cb12-120"><a href="#cb12-120"></a></span>
+<span id="cb12-121"><a href="#cb12-121"></a><span class="co"># Extract lists of column names by type</span></span>
+<span id="cb12-122"><a href="#cb12-122"></a>schema_cols <span class="op">=</span> [c <span class="cf">for</span> c, _ <span class="kw">in</span> df.dtypes]</span>
+<span id="cb12-123"><a href="#cb12-123"></a>num_cols <span class="op">=</span> [c <span class="cf">for</span> c, t <span class="kw">in</span> df.dtypes <span class="cf">if</span> t <span class="kw">in</span> (<span class="st">"int"</span>, <span class="st">"double"</span>, <span class="st">"float"</span>)]</span>
+<span id="cb12-124"><a href="#cb12-124"></a>str_cols <span class="op">=</span> [c <span class="cf">for</span> c, t <span class="kw">in</span> df.dtypes <span class="cf">if</span> t <span class="op">==</span> <span class="st">"string"</span>]</span>
+<span id="cb12-125"><a href="#cb12-125"></a></span>
+<span id="cb12-126"><a href="#cb12-126"></a><span class="co"># Define the target column (salary)</span></span>
+<span id="cb12-127"><a href="#cb12-127"></a>target <span class="op">=</span> first_existing([<span class="st">"salary"</span>, <span class="st">"SALARY"</span>, <span class="st">"avg_salary"</span>, <span class="st">"median_salary"</span>], schema_cols)</span>
+<span id="cb12-128"><a href="#cb12-128"></a><span class="cf">if</span> <span class="kw">not</span> target:</span>
+<span id="cb12-129"><a href="#cb12-129"></a>    <span class="cf">raise</span> <span class="pp">ValueError</span>(<span class="st">"❌ No salary column found. Please verify dataset headers."</span>)</span>
+<span id="cb12-130"><a href="#cb12-130"></a></span>
+<span id="cb12-131"><a href="#cb12-131"></a><span class="co"># Choose continuous variables</span></span>
+<span id="cb12-132"><a href="#cb12-132"></a>cont1 <span class="op">=</span> first_existing(</span>
+<span id="cb12-133"><a href="#cb12-133"></a>    [<span class="st">"min_years_experience"</span>, <span class="st">"MIN_YEARS_EXPERIENCE"</span>, <span class="st">"experience_min"</span>, <span class="st">"required_experience_min"</span>],</span>
+<span id="cb12-134"><a href="#cb12-134"></a>    schema_cols</span>
+<span id="cb12-135"><a href="#cb12-135"></a>)</span>
+<span id="cb12-136"><a href="#cb12-136"></a>cont2 <span class="op">=</span> first_existing(</span>
+<span id="cb12-137"><a href="#cb12-137"></a>    [<span class="st">"max_years_experience"</span>, <span class="st">"MAX_YEARS_EXPERIENCE"</span>, <span class="st">"experience_max"</span>, <span class="st">"required_experience_max"</span>],</span>
+<span id="cb12-138"><a href="#cb12-138"></a>    schema_cols</span>
+<span id="cb12-139"><a href="#cb12-139"></a>)</span>
+<span id="cb12-140"><a href="#cb12-140"></a></span>
+<span id="cb12-141"><a href="#cb12-141"></a><span class="co"># Fallback continuous columns if none found</span></span>
+<span id="cb12-142"><a href="#cb12-142"></a>avoid <span class="op">=</span> {target, <span class="st">"ID"</span>, <span class="st">"id"</span>, <span class="st">"DUPLICATES"</span>, <span class="st">"duplicates"</span>}</span>
+<span id="cb12-143"><a href="#cb12-143"></a>fallback_nums <span class="op">=</span> [c <span class="cf">for</span> c <span class="kw">in</span> num_cols <span class="cf">if</span> c <span class="kw">not</span> <span class="kw">in</span> avoid]</span>
+<span id="cb12-144"><a href="#cb12-144"></a><span class="cf">if</span> cont1 <span class="kw">is</span> <span class="va">None</span> <span class="kw">and</span> fallback_nums:</span>
+<span id="cb12-145"><a href="#cb12-145"></a>    cont1 <span class="op">=</span> fallback_nums[<span class="dv">0</span>]</span>
+<span id="cb12-146"><a href="#cb12-146"></a><span class="cf">if</span> cont2 <span class="kw">is</span> <span class="va">None</span> <span class="kw">and</span> <span class="bu">len</span>(fallback_nums) <span class="op">&gt;</span> <span class="dv">1</span>:</span>
+<span id="cb12-147"><a href="#cb12-147"></a>    cont2 <span class="op">=</span> fallback_nums[<span class="dv">1</span>]</span>
+<span id="cb12-148"><a href="#cb12-148"></a></span>
+<span id="cb12-149"><a href="#cb12-149"></a><span class="co"># Choose categorical variable</span></span>
+<span id="cb12-150"><a href="#cb12-150"></a>cat1 <span class="op">=</span> first_existing(</span>
+<span id="cb12-151"><a href="#cb12-151"></a>    [</span>
+<span id="cb12-152"><a href="#cb12-152"></a>        <span class="st">"remote_type_name"</span>, <span class="st">"REMOTE_TYPE_NAME"</span>, <span class="st">"employment_type"</span>, <span class="st">"EMPLOYMENT_TYPE"</span>,</span>
+<span id="cb12-153"><a href="#cb12-153"></a>        <span class="st">"education_level"</span>, <span class="st">"EDUCATION_LEVEL"</span>, <span class="st">"experience_level"</span>, <span class="st">"EXPERIENCE_LEVEL"</span>,</span>
+<span id="cb12-154"><a href="#cb12-154"></a>        <span class="st">"work_type"</span>, <span class="st">"WORK_TYPE"</span>, <span class="st">"state"</span>, <span class="st">"STATE"</span></span>
+<span id="cb12-155"><a href="#cb12-155"></a>    ],</span>
+<span id="cb12-156"><a href="#cb12-156"></a>    schema_cols</span>
+<span id="cb12-157"><a href="#cb12-157"></a>)</span>
+<span id="cb12-158"><a href="#cb12-158"></a></span>
+<span id="cb12-159"><a href="#cb12-159"></a><span class="co"># Fallback: pick a low-cardinality string column automatically</span></span>
+<span id="cb12-160"><a href="#cb12-160"></a><span class="cf">if</span> cat1 <span class="kw">is</span> <span class="va">None</span>:</span>
+<span id="cb12-161"><a href="#cb12-161"></a>    <span class="cf">for</span> c <span class="kw">in</span> str_cols[:<span class="dv">25</span>]:</span>
+<span id="cb12-162"><a href="#cb12-162"></a>        <span class="cf">try</span>:</span>
+<span id="cb12-163"><a href="#cb12-163"></a>            k <span class="op">=</span> df.select(countDistinct(col(c)).alias(<span class="st">"k"</span>)).collect()[<span class="dv">0</span>][<span class="st">"k"</span>]</span>
+<span id="cb12-164"><a href="#cb12-164"></a>            <span class="cf">if</span> <span class="dv">2</span> <span class="op">&lt;=</span> k <span class="op">&lt;=</span> <span class="dv">30</span>:</span>
+<span id="cb12-165"><a href="#cb12-165"></a>                cat1 <span class="op">=</span> c</span>
+<span id="cb12-166"><a href="#cb12-166"></a>                <span class="bu">print</span>(<span class="ss">f"✅ Auto-selected categorical: </span><span class="sc">{</span>cat1<span class="sc">}</span><span class="ss"> (distinct=</span><span class="sc">{</span>k<span class="sc">}</span><span class="ss">)"</span>)</span>
+<span id="cb12-167"><a href="#cb12-167"></a>                <span class="cf">break</span></span>
+<span id="cb12-168"><a href="#cb12-168"></a>        <span class="cf">except</span> <span class="pp">Exception</span>:</span>
+<span id="cb12-169"><a href="#cb12-169"></a>            <span class="cf">pass</span></span>
+<span id="cb12-170"><a href="#cb12-170"></a></span>
+<span id="cb12-171"><a href="#cb12-171"></a><span class="co"># Validate selections</span></span>
+<span id="cb12-172"><a href="#cb12-172"></a>chosen_cont <span class="op">=</span> [c <span class="cf">for</span> c <span class="kw">in</span> [cont1, cont2] <span class="cf">if</span> c]</span>
+<span id="cb12-173"><a href="#cb12-173"></a><span class="cf">if</span> <span class="bu">len</span>(chosen_cont) <span class="op">&lt;</span> <span class="dv">2</span> <span class="kw">or</span> cat1 <span class="kw">is</span> <span class="va">None</span>:</span>
+<span id="cb12-174"><a href="#cb12-174"></a>    <span class="cf">raise</span> <span class="pp">ValueError</span>(</span>
+<span id="cb12-175"><a href="#cb12-175"></a>        <span class="ss">f"⚠️ Not enough predictors found.</span><span class="ch">\n</span><span class="ss">"</span></span>
+<span id="cb12-176"><a href="#cb12-176"></a>        <span class="ss">f"Target: </span><span class="sc">{</span>target<span class="sc">}</span><span class="ch">\n</span><span class="ss">"</span></span>
+<span id="cb12-177"><a href="#cb12-177"></a>        <span class="ss">f"Continuous: </span><span class="sc">{</span>chosen_cont<span class="sc">}</span><span class="ch">\n</span><span class="ss">"</span></span>
+<span id="cb12-178"><a href="#cb12-178"></a>        <span class="ss">f"Categorical: </span><span class="sc">{</span>cat1<span class="sc">}</span><span class="ch">\n</span><span class="ss">"</span></span>
+<span id="cb12-179"><a href="#cb12-179"></a>        <span class="st">"Please check column names above and manually assign predictors."</span></span>
+<span id="cb12-180"><a href="#cb12-180"></a>    )</span>
+<span id="cb12-181"><a href="#cb12-181"></a></span>
+<span id="cb12-182"><a href="#cb12-182"></a><span class="bu">print</span>(<span class="st">"✅ Selected columns:"</span>)</span>
+<span id="cb12-183"><a href="#cb12-183"></a><span class="bu">print</span>(<span class="st">"  Target (y):"</span>, target)</span>
+<span id="cb12-184"><a href="#cb12-184"></a><span class="bu">print</span>(<span class="st">"  Continuous (x1, x2):"</span>, chosen_cont)</span>
+<span id="cb12-185"><a href="#cb12-185"></a><span class="bu">print</span>(<span class="st">"  Categorical (x3):"</span>, cat1)</span>
+<span id="cb12-186"><a href="#cb12-186"></a></span>
+<span id="cb12-187"><a href="#cb12-187"></a><span class="co"># Drop rows with missing values</span></span>
+<span id="cb12-188"><a href="#cb12-188"></a>cols_needed <span class="op">=</span> [target] <span class="op">+</span> chosen_cont <span class="op">+</span> [cat1]</span>
+<span id="cb12-189"><a href="#cb12-189"></a>df_clean <span class="op">=</span> df.select(<span class="op">*</span>cols_needed).dropna(subset<span class="op">=</span>cols_needed)</span>
+<span id="cb12-190"><a href="#cb12-190"></a><span class="bu">print</span>(<span class="ss">f"Rows before cleaning: </span><span class="sc">{</span>df<span class="sc">.</span>count()<span class="sc">:,}</span><span class="ss"> | after cleaning: </span><span class="sc">{</span>df_clean<span class="sc">.</span>count()<span class="sc">:,}</span><span class="ss">"</span>)</span>
+<span id="cb12-191"><a href="#cb12-191"></a></span>
+<span id="cb12-192"><a href="#cb12-192"></a><span class="co"># Encode categorical variable</span></span>
+<span id="cb12-193"><a href="#cb12-193"></a>idx_col <span class="op">=</span> <span class="ss">f"</span><span class="sc">{</span>cat1<span class="sc">}</span><span class="ss">_idx"</span></span>
+<span id="cb12-194"><a href="#cb12-194"></a>oh_col <span class="op">=</span> <span class="ss">f"</span><span class="sc">{</span>cat1<span class="sc">}</span><span class="ss">_oh"</span></span>
+<span id="cb12-195"><a href="#cb12-195"></a>indexer <span class="op">=</span> StringIndexer(inputCol<span class="op">=</span>cat1, outputCol<span class="op">=</span>idx_col, handleInvalid<span class="op">=</span><span class="st">"keep"</span>)</span>
+<span id="cb12-196"><a href="#cb12-196"></a>encoder <span class="op">=</span> OneHotEncoder(inputCols<span class="op">=</span>[idx_col], outputCols<span class="op">=</span>[oh_col])</span>
+<span id="cb12-197"><a href="#cb12-197"></a></span>
+<span id="cb12-198"><a href="#cb12-198"></a>df_indexed <span class="op">=</span> indexer.fit(df_clean).transform(df_clean)</span>
+<span id="cb12-199"><a href="#cb12-199"></a>df_encoded <span class="op">=</span> encoder.fit(df_indexed).transform(df_indexed)</span>
+<span id="cb12-200"><a href="#cb12-200"></a></span>
+<span id="cb12-201"><a href="#cb12-201"></a><span class="co"># Assemble final features</span></span>
+<span id="cb12-202"><a href="#cb12-202"></a>assembler <span class="op">=</span> VectorAssembler(inputCols<span class="op">=</span>chosen_cont <span class="op">+</span> [oh_col], outputCol<span class="op">=</span><span class="st">"features"</span>)</span>
+<span id="cb12-203"><a href="#cb12-203"></a>df_fe <span class="op">=</span> assembler.transform(df_encoded).select(col(target).alias(<span class="st">"label"</span>), <span class="st">"features"</span>)</span>
+<span id="cb12-204"><a href="#cb12-204"></a></span>
+<span id="cb12-205"><a href="#cb12-205"></a><span class="bu">print</span>(<span class="st">"✅ Schema after feature engineering:"</span>)</span>
+<span id="cb12-206"><a href="#cb12-206"></a>df_fe.printSchema()</span>
+<span id="cb12-207"><a href="#cb12-207"></a>df_fe.show(<span class="dv">5</span>, truncate<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb12-208"><a href="#cb12-208"></a></span>
+<span id="cb12-209"><a href="#cb12-209"></a><span class="in">```</span></span>
+<span id="cb12-210"><a href="#cb12-210"></a></span>
+<span id="cb12-211"><a href="#cb12-211"></a><span class="fu"># Train/Test Split</span></span>
+<span id="cb12-212"><a href="#cb12-212"></a>A random split was performed to ensure a balanced and representative sample of the data.  </span>
+<span id="cb12-213"><a href="#cb12-213"></a>A fixed random seed was used for reproducibility. In this lab, an **80 % – 20 %** split was applied, which is a standard proportion providing sufficient data for training while retaining a meaningful portion for testing and evaluation.</span>
+<span id="cb12-214"><a href="#cb12-214"></a></span>
+<span id="cb12-217"><a href="#cb12-217"></a><span class="in">```{python}</span></span>
+<span id="cb12-218"><a href="#cb12-218"></a><span class="co"># Train/Test Split</span></span>
+<span id="cb12-219"><a href="#cb12-219"></a><span class="co"># Perform an 80/20 random split of the dataset with a fixed random seed for reproducibility.</span></span>
+<span id="cb12-220"><a href="#cb12-220"></a></span>
+<span id="cb12-221"><a href="#cb12-221"></a>train_df, test_df <span class="op">=</span> df_fe.randomSplit([<span class="fl">0.8</span>, <span class="fl">0.2</span>], seed<span class="op">=</span><span class="dv">42</span>)</span>
+<span id="cb12-222"><a href="#cb12-222"></a></span>
+<span id="cb12-223"><a href="#cb12-223"></a><span class="co"># Display sizes of train and test sets</span></span>
+<span id="cb12-224"><a href="#cb12-224"></a><span class="bu">print</span>(<span class="ss">f"Training set: </span><span class="sc">{</span>train_df<span class="sc">.</span>count()<span class="sc">:,}</span><span class="ss"> rows"</span>)</span>
+<span id="cb12-225"><a href="#cb12-225"></a><span class="bu">print</span>(<span class="ss">f"Testing set:  </span><span class="sc">{</span>test_df<span class="sc">.</span>count()<span class="sc">:,}</span><span class="ss"> rows"</span>)</span>
+<span id="cb12-226"><a href="#cb12-226"></a></span>
+<span id="cb12-227"><a href="#cb12-227"></a><span class="co"># Print tuple format for clarity and comparison with lab PDF</span></span>
+<span id="cb12-228"><a href="#cb12-228"></a><span class="bu">print</span>(<span class="ss">f"(</span><span class="sc">{</span>train_df<span class="sc">.</span>count()<span class="sc">}</span><span class="ss">, </span><span class="sc">{</span><span class="bu">len</span>(train_df.columns)<span class="sc">}</span><span class="ss">)"</span>)</span>
+<span id="cb12-229"><a href="#cb12-229"></a><span class="bu">print</span>(<span class="ss">f"(</span><span class="sc">{</span>test_df<span class="sc">.</span>count()<span class="sc">}</span><span class="ss">, </span><span class="sc">{</span><span class="bu">len</span>(test_df.columns)<span class="sc">}</span><span class="ss">)"</span>)</span>
+<span id="cb12-230"><a href="#cb12-230"></a></span>
+<span id="cb12-231"><a href="#cb12-231"></a><span class="in">```</span></span>
+<span id="cb12-232"><a href="#cb12-232"></a></span>
+<span id="cb12-233"><a href="#cb12-233"></a></span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
