@@ -691,3 +691,132 @@ imp_df.show(20, truncate=False)
 # imp_df.coalesce(1).write.mode("overwrite").option("header", True).csv("output/rf_feature_importances")
 ```
 
+
+
+
+
+## Feature Importance Plot
+
+```{python}
+# ======================================================
+# Random Forest Feature Importance — Interactive + PNG
+#  - Robust vector length detection (Vector UDT safe)
+#  - Interactive Plotly bar chart
+#  - Static PNG saved to ./_output/rf_feature_importance.png
+# ======================================================
+
+from pyspark.ml.regression import RandomForestRegressor
+from pyspark.ml.functions import vector_to_array
+from pyspark.sql import functions as F
+import os
+
+# ---------- 0) Safety: ensure train/test exist ----------
+try:
+    _ = train_nz.count(); _ = test_nz.count()
+except NameError:
+    raise RuntimeError("train_nz/test_nz not found. Run the RF training cell first.")
+
+# ---------- 1) Get (or fit) RF model ----------
+try:
+    rf_model  # reuse if already trained
+except NameError:
+    rf = RandomForestRegressor(
+        featuresCol="features", labelCol="SALARY", predictionCol="prediction_rf",
+        numTrees=200, maxDepth=6, featureSubsetStrategy="sqrt",
+        subsamplingRate=0.8, minInstancesPerNode=2, maxBins=64, seed=42
+    )
+    rf_model = rf.fit(train_nz)
+
+# ---------- 2) Robust feature-name extraction ----------
+def extract_feature_names(df, features_col="features"):
+    meta = df.schema[features_col].metadata
+    try:
+        attrs = meta["ml_attr"]["attrs"]
+        names = []
+        for typ in ("binary", "numeric"):
+            if typ in attrs:
+                for a in attrs[typ]:
+                    names.append(a.get("name", f"f_{a.get('idx', len(names))}"))
+        return names
+    except Exception:
+        size = df.selectExpr(f"size({features_col}) as n").first().n
+        return [f"feature_{i}" for i in range(size)]
+
+try:
+    feature_names = feat_names  # reuse from earlier if available
+except NameError:
+    feature_names = extract_feature_names(train_nz, "features")
+
+# ---------- 3) Vector length (no AnalysisException) ----------
+try:
+    # Convert Vector UDT -> array, then size()
+    vec_len = train_nz.select(
+        F.size(vector_to_array(F.col("features"))).alias("n")
+    ).first().n
+except Exception:
+    # Fallback to the trained model’s importances size
+    vec_len = int(getattr(rf_model.featureImportances, "size", len(feature_names)))
+
+# Align names to actual vector size
+if len(feature_names) != vec_len:
+    if len(feature_names) > vec_len:
+        feature_names = feature_names[:vec_len]
+    else:
+        feature_names += [f"feature_{i}" for i in range(len(feature_names), vec_len)]
+
+# ---------- 4) Build importances table ----------
+imp_vec = rf_model.featureImportances  # SparseVector
+importances = [0.0] * vec_len
+for idx, val in zip(imp_vec.indices, imp_vec.values):
+    if int(idx) < vec_len:
+        importances[int(idx)] = float(val)
+
+imp_rows = list(zip(feature_names, importances))
+imp_df = spark.createDataFrame(imp_rows, ["feature", "rf_importance"]) \
+              .orderBy(F.desc("rf_importance"))
+
+topN = 10
+top_df = imp_df.limit(topN)
+top_pd = top_df.toPandas()
+
+# ---------- 5) Interactive bar (Plotly) ----------
+import plotly.express as px
+
+fig = px.bar(
+    top_pd.sort_values("rf_importance", ascending=True),
+    x="rf_importance", y="feature",
+    orientation="h",
+    title=f"Top {topN} Random Forest Feature Importances",
+    labels={"rf_importance": "Importance", "feature": "Feature"},
+)
+fig.update_layout(yaxis=dict(dtick=1), margin=dict(l=10, r=10, t=40, b=10))
+fig.show()
+
+# ---------- 6) Save static PNG to ./_output/ ----------
+# Use matplotlib (and seaborn if available) to avoid Plotly/kaleido dependency.
+import matplotlib.pyplot as plt
+try:
+    import seaborn as sns
+    use_sns = True
+except Exception:
+    use_sns = False
+
+os.makedirs("_output", exist_ok=True)
+plt.figure(figsize=(8, 5))
+plot_data = top_pd.sort_values("rf_importance", ascending=True)
+
+if use_sns:
+    ax = sns.barplot(data=plot_data, x="rf_importance", y="feature")
+else:
+    ax = plt.barh(plot_data["feature"], plot_data["rf_importance"])
+
+plt.xlabel("Importance")
+plt.ylabel("Feature")
+plt.title(f"Top {topN} Random Forest Feature Importances")
+plt.tight_layout()
+plt.savefig("_output/rf_feature_importance.png", dpi=200)
+plt.close()
+
+print("✅ Saved static plot to: _output/rf_feature_importance.png")
+
+```
