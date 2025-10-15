@@ -343,7 +343,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction"><span class="header-section-number">1</span> Introduction</a></li>
   <li><a href="#load-the-dataset" id="toc-load-the-dataset" class="nav-link" data-scroll-target="#load-the-dataset"><span class="header-section-number">2</span> Load the Dataset</a></li>
   <li><a href="#feature-engineering" id="toc-feature-engineering" class="nav-link" data-scroll-target="#feature-engineering"><span class="header-section-number">3</span> Feature Engineering</a></li>
-  <li><a href="#traintest-split" id="toc-traintest-split" class="nav-link" data-scroll-target="#traintest-split"><span class="header-section-number">4</span> Train/Test Split</a></li>
   </ul>
 </nav>
     </div>
@@ -398,7 +397,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h1 data-number="2"><span class="header-section-number">2</span> Load the Dataset</h1>
 <p><strong>PySpark</strong> is used to load the <em>Lightcast Job Postings</em> dataset into a Spark DataFrame.<br>
 This approach enables us to efficiently handle large datasets within the EC2 environment before proceeding with feature engineering and regression analysis.</p>
-<div id="86fa40a4" class="cell" data-execution_count="1">
+<div id="6710ce94" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1"></a><span class="co"># Load the Lightcast dataset with PySpark</span></span>
@@ -588,7 +587,7 @@ only showing top 5 rows</code></pre>
 <h1 data-number="3"><span class="header-section-number">3</span> Feature Engineering</h1>
 <p>Feature engineering is a crucial step in preparing the dataset for machine learning.<br>
 This section cleans the data, encodes categorical variables, and constructs feature vectors for model training.</p>
-<div id="8744ed01" class="cell" data-execution_count="2">
+<div id="179930fd" class="cell" data-execution_count="2">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1"></a><span class="co"># ======================================================</span></span>
@@ -678,36 +677,6 @@ This section cleans the data, encodes categorical variables, and constructs feat
 |136950|3                   |Maine      |(63,[0,1,2,3,46,57],[3.0,3.0,9.0,1.0,1.0,1.0])|
 +------+--------------------+-----------+----------------------------------------------+
 only showing top 5 rows</code></pre>
-</div>
-</div>
-</section>
-<section id="traintest-split" class="level1" data-number="4">
-<h1 data-number="4"><span class="header-section-number">4</span> Train/Test Split</h1>
-<p>Splitting the data into training and testing sets ensures that the model is evaluated on unseen data, which helps measure its generalization performance.<br>
-Here an <strong>80/20 split</strong> is used, a common practice that provides a large enough training set while reserving sufficient data for evaluation.</p>
-<div id="dd6b1be9" class="cell" data-execution_count="3">
-<details class="code-fold">
-<summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1"></a><span class="co"># ======================================================</span></span>
-<span id="cb6-2"><a href="#cb6-2"></a><span class="co"># TRAIN / </span><span class="al">TEST</span><span class="co"> SPLIT</span></span>
-<span id="cb6-3"><a href="#cb6-3"></a><span class="co"># ======================================================</span></span>
-<span id="cb6-4"><a href="#cb6-4"></a></span>
-<span id="cb6-5"><a href="#cb6-5"></a><span class="co"># Perform random split with reproducibility</span></span>
-<span id="cb6-6"><a href="#cb6-6"></a>train_df, test_df <span class="op">=</span> df_fe.randomSplit([<span class="fl">0.8</span>, <span class="fl">0.2</span>], seed<span class="op">=</span><span class="dv">42</span>)</span>
-<span id="cb6-7"><a href="#cb6-7"></a></span>
-<span id="cb6-8"><a href="#cb6-8"></a><span class="co"># Display record counts for each subset</span></span>
-<span id="cb6-9"><a href="#cb6-9"></a>train_count <span class="op">=</span> train_df.count()</span>
-<span id="cb6-10"><a href="#cb6-10"></a>test_count <span class="op">=</span> test_df.count()</span>
-<span id="cb6-11"><a href="#cb6-11"></a>total_count <span class="op">=</span> df_fe.count()</span>
-<span id="cb6-12"><a href="#cb6-12"></a></span>
-<span id="cb6-13"><a href="#cb6-13"></a><span class="bu">print</span>(<span class="ss">f"✅ Total records: </span><span class="sc">{</span>total_count<span class="sc">:,}</span><span class="ss">"</span>)</span>
-<span id="cb6-14"><a href="#cb6-14"></a><span class="bu">print</span>(<span class="ss">f"🧠 Training set: </span><span class="sc">{</span>train_count<span class="sc">:,}</span><span class="ss"> rows (</span><span class="sc">{</span>train_count<span class="op">/</span>total_count<span class="sc">:.1%}</span><span class="ss">)"</span>)</span>
-<span id="cb6-15"><a href="#cb6-15"></a><span class="bu">print</span>(<span class="ss">f"🧾 Testing set:  </span><span class="sc">{</span>test_count<span class="sc">:,}</span><span class="ss"> rows (</span><span class="sc">{</span>test_count<span class="op">/</span>total_count<span class="sc">:.1%}</span><span class="ss">)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</details>
-<div class="cell-output cell-output-stdout">
-<pre><code>✅ Total records: 3,756
-🧠 Training set: 3,060 rows (81.5%)
-🧾 Testing set:  696 rows (18.5%)</code></pre>
 </div>
 </div>
 
@@ -1181,197 +1150,171 @@ Here an <strong>80/20 split</strong> is used, a common practice that provides a 
     }
   });
   </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8" data-shortcodes="false"><pre class="sourceCode numberSource markdown number-lines code-with-copy"><code class="sourceCode markdown"><span id="cb8-1"><a href="#cb8-1"></a><span class="co">---</span></span>
-<span id="cb8-2"><a href="#cb8-2"></a><span class="an">title:</span><span class="co"> "Assignment 04 — Lab 04 Machine Learning on Scale"</span></span>
-<span id="cb8-3"><a href="#cb8-3"></a><span class="an">subtitle:</span><span class="co"> "Causal and Predictive Analytics in Spark"</span></span>
-<span id="cb8-4"><a href="#cb8-4"></a><span class="an">author:</span></span>
-<span id="cb8-5"><a href="#cb8-5"></a><span class="co">  - name: "Othmane Elouardi"</span></span>
-<span id="cb8-6"><a href="#cb8-6"></a><span class="co">    affiliations:</span></span>
-<span id="cb8-7"><a href="#cb8-7"></a><span class="co">      - id: bu</span></span>
-<span id="cb8-8"><a href="#cb8-8"></a><span class="co">        name: "Boston University"</span></span>
-<span id="cb8-9"><a href="#cb8-9"></a><span class="co">        city: "Boston"</span></span>
-<span id="cb8-10"><a href="#cb8-10"></a><span class="co">        state: "MA"</span></span>
-<span id="cb8-11"><a href="#cb8-11"></a><span class="an">date:</span><span class="co"> "2025-10-08"</span></span>
-<span id="cb8-12"><a href="#cb8-12"></a><span class="an">number-sections:</span><span class="co"> true</span></span>
-<span id="cb8-13"><a href="#cb8-13"></a><span class="an">format:</span></span>
-<span id="cb8-14"><a href="#cb8-14"></a><span class="co">  html:</span></span>
-<span id="cb8-15"><a href="#cb8-15"></a><span class="co">    theme:</span></span>
-<span id="cb8-16"><a href="#cb8-16"></a><span class="co">      light: lux</span></span>
-<span id="cb8-17"><a href="#cb8-17"></a><span class="co">      dark: slate</span></span>
-<span id="cb8-18"><a href="#cb8-18"></a><span class="co">    toc: true</span></span>
-<span id="cb8-19"><a href="#cb8-19"></a><span class="co">    toc-depth: 3</span></span>
-<span id="cb8-20"><a href="#cb8-20"></a><span class="co">    toc-location: right</span></span>
-<span id="cb8-21"><a href="#cb8-21"></a><span class="co">    smooth-scroll: true</span></span>
-<span id="cb8-22"><a href="#cb8-22"></a><span class="co">    code-fold: true</span></span>
-<span id="cb8-23"><a href="#cb8-23"></a><span class="co">    code-tools: true</span></span>
-<span id="cb8-24"><a href="#cb8-24"></a><span class="co">    code-line-numbers: true</span></span>
-<span id="cb8-25"><a href="#cb8-25"></a><span class="co">    highlight-style: a11y</span></span>
-<span id="cb8-26"><a href="#cb8-26"></a><span class="co">    page-layout: article</span></span>
-<span id="cb8-27"><a href="#cb8-27"></a><span class="co">    css: styles.css</span></span>
-<span id="cb8-28"><a href="#cb8-28"></a><span class="co">    grid:</span></span>
-<span id="cb8-29"><a href="#cb8-29"></a><span class="co">      body-width: 900px</span></span>
-<span id="cb8-30"><a href="#cb8-30"></a><span class="co">      margin-width: 280px</span></span>
-<span id="cb8-31"><a href="#cb8-31"></a><span class="an">execute:</span></span>
-<span id="cb8-32"><a href="#cb8-32"></a><span class="co">  echo: true</span></span>
-<span id="cb8-33"><a href="#cb8-33"></a><span class="co">  warning: false</span></span>
-<span id="cb8-34"><a href="#cb8-34"></a><span class="co">  error: false</span></span>
-<span id="cb8-35"><a href="#cb8-35"></a><span class="co">  freeze: auto</span></span>
-<span id="cb8-36"><a href="#cb8-36"></a><span class="an">jupyter:</span><span class="co"> env</span></span>
-<span id="cb8-37"><a href="#cb8-37"></a><span class="co">---</span></span>
-<span id="cb8-38"><a href="#cb8-38"></a></span>
-<span id="cb8-39"><a href="#cb8-39"></a></span>
-<span id="cb8-40"><a href="#cb8-40"></a><span class="fu"># Introduction</span></span>
-<span id="cb8-41"><a href="#cb8-41"></a>PySpark is applied to large-scale employment data from the Lightcast Job Postings dataset to develop and evaluate salary prediction models. The workflow involves engineering key features from structured columns, training a Linear Regression model, and assessing performance using RMSE and R² metrics. Visual diagnostic plots are generated to interpret model accuracy and residual patterns. The final analysis is documented, version-controlled, and submitted via GitHub, demonstrating end-to-end data processing and predictive modeling on a distributed computing platform.</span>
-<span id="cb8-42"><a href="#cb8-42"></a></span>
-<span id="cb8-43"><a href="#cb8-43"></a><span class="fu"># Load the Dataset</span></span>
-<span id="cb8-44"><a href="#cb8-44"></a> **PySpark** is used to load the *Lightcast Job Postings* dataset into a Spark DataFrame.  </span>
-<span id="cb8-45"><a href="#cb8-45"></a>This approach enables us to efficiently handle large datasets within the EC2 environment before proceeding with feature engineering and regression analysis.</span>
-<span id="cb8-46"><a href="#cb8-46"></a></span>
-<span id="cb8-49"><a href="#cb8-49"></a><span class="in">```{python}</span></span>
-<span id="cb8-50"><a href="#cb8-50"></a><span class="co"># Load the Lightcast dataset with PySpark</span></span>
-<span id="cb8-51"><a href="#cb8-51"></a></span>
-<span id="cb8-52"><a href="#cb8-52"></a><span class="im">from</span> pyspark.sql <span class="im">import</span> SparkSession</span>
-<span id="cb8-53"><a href="#cb8-53"></a><span class="im">import</span> os</span>
-<span id="cb8-54"><a href="#cb8-54"></a></span>
-<span id="cb8-55"><a href="#cb8-55"></a><span class="co"># Initialize Spark session </span></span>
-<span id="cb8-56"><a href="#cb8-56"></a>spark <span class="op">=</span> (</span>
-<span id="cb8-57"><a href="#cb8-57"></a>    SparkSession.builder</span>
-<span id="cb8-58"><a href="#cb8-58"></a>    .appName(<span class="st">"LightcastData"</span>)</span>
-<span id="cb8-59"><a href="#cb8-59"></a>    .config(<span class="st">"spark.driver.memory"</span>, <span class="st">"1g"</span>)</span>
-<span id="cb8-60"><a href="#cb8-60"></a>    .getOrCreate()</span>
-<span id="cb8-61"><a href="#cb8-61"></a>)</span>
-<span id="cb8-62"><a href="#cb8-62"></a></span>
-<span id="cb8-63"><a href="#cb8-63"></a><span class="co"># Define dataset path</span></span>
-<span id="cb8-64"><a href="#cb8-64"></a>csv_path <span class="op">=</span> <span class="st">"data/lightcast_job_postings.csv"</span></span>
-<span id="cb8-65"><a href="#cb8-65"></a></span>
-<span id="cb8-66"><a href="#cb8-66"></a><span class="co"># Check path validity</span></span>
-<span id="cb8-67"><a href="#cb8-67"></a><span class="cf">if</span> <span class="kw">not</span> os.path.exists(csv_path):</span>
-<span id="cb8-68"><a href="#cb8-68"></a>    <span class="cf">raise</span> <span class="pp">FileNotFoundError</span>(<span class="ss">f"❌ Could not find </span><span class="sc">{</span>csv_path<span class="sc">}</span><span class="ss">. Please ensure the file exists in the data/ folder."</span>)</span>
-<span id="cb8-69"><a href="#cb8-69"></a></span>
-<span id="cb8-70"><a href="#cb8-70"></a><span class="co"># Load dataset</span></span>
-<span id="cb8-71"><a href="#cb8-71"></a>df <span class="op">=</span> (</span>
-<span id="cb8-72"><a href="#cb8-72"></a>    spark.read</span>
-<span id="cb8-73"><a href="#cb8-73"></a>    .option(<span class="st">"header"</span>, <span class="st">"true"</span>)       <span class="co"># First row as headers</span></span>
-<span id="cb8-74"><a href="#cb8-74"></a>    .option(<span class="st">"inferSchema"</span>, <span class="st">"true"</span>)  <span class="co"># Auto-detect data types</span></span>
-<span id="cb8-75"><a href="#cb8-75"></a>    .option(<span class="st">"multiLine"</span>, <span class="st">"true"</span>)    <span class="co"># Handle multi-line text fields</span></span>
-<span id="cb8-76"><a href="#cb8-76"></a>    .option(<span class="st">"escape"</span>, <span class="st">"</span><span class="ch">\"</span><span class="st">"</span>)         <span class="co"># Handle embedded quotes</span></span>
-<span id="cb8-77"><a href="#cb8-77"></a>    .csv(csv_path)</span>
-<span id="cb8-78"><a href="#cb8-78"></a>)</span>
-<span id="cb8-79"><a href="#cb8-79"></a></span>
-<span id="cb8-80"><a href="#cb8-80"></a><span class="co"># Confirm load success</span></span>
-<span id="cb8-81"><a href="#cb8-81"></a><span class="bu">print</span>(<span class="st">"✅ Dataset successfully loaded!"</span>)</span>
-<span id="cb8-82"><a href="#cb8-82"></a>df.printSchema()</span>
-<span id="cb8-83"><a href="#cb8-83"></a>df.show(<span class="dv">5</span>, truncate<span class="op">=</span><span class="va">False</span>)</span>
-<span id="cb8-84"><a href="#cb8-84"></a><span class="in">```</span></span>
-<span id="cb8-85"><a href="#cb8-85"></a></span>
-<span id="cb8-86"><a href="#cb8-86"></a></span>
-<span id="cb8-87"><a href="#cb8-87"></a></span>
-<span id="cb8-88"><a href="#cb8-88"></a><span class="fu"># Feature Engineering</span></span>
-<span id="cb8-89"><a href="#cb8-89"></a></span>
-<span id="cb8-90"><a href="#cb8-90"></a>Feature engineering is a crucial step in preparing the dataset for machine learning.  </span>
-<span id="cb8-91"><a href="#cb8-91"></a>This section cleans the data, encodes categorical variables, and constructs feature vectors for model training.</span>
-<span id="cb8-92"><a href="#cb8-92"></a></span>
-<span id="cb8-95"><a href="#cb8-95"></a><span class="in">```{python}</span></span>
-<span id="cb8-96"><a href="#cb8-96"></a><span class="co"># ======================================================</span></span>
-<span id="cb8-97"><a href="#cb8-97"></a><span class="co"># FEATURE ENGINEERING</span></span>
-<span id="cb8-98"><a href="#cb8-98"></a><span class="co"># ======================================================</span></span>
-<span id="cb8-99"><a href="#cb8-99"></a></span>
-<span id="cb8-100"><a href="#cb8-100"></a><span class="im">from</span> pyspark.sql <span class="im">import</span> functions <span class="im">as</span> F</span>
-<span id="cb8-101"><a href="#cb8-101"></a><span class="im">from</span> pyspark.ml.feature <span class="im">import</span> StringIndexer, OneHotEncoder, VectorAssembler</span>
-<span id="cb8-102"><a href="#cb8-102"></a></span>
-<span id="cb8-103"><a href="#cb8-103"></a><span class="co"># ------------------------------------------------------</span></span>
-<span id="cb8-104"><a href="#cb8-104"></a><span class="co"># 1. Drop rows with missing target or key features</span></span>
-<span id="cb8-105"><a href="#cb8-105"></a><span class="co"># ------------------------------------------------------</span></span>
-<span id="cb8-106"><a href="#cb8-106"></a>df_clean <span class="op">=</span> df.dropna(subset<span class="op">=</span>[</span>
-<span id="cb8-107"><a href="#cb8-107"></a>    <span class="st">"SALARY"</span>, <span class="st">"MIN_YEARS_EXPERIENCE"</span>, <span class="st">"MAX_YEARS_EXPERIENCE"</span>,</span>
-<span id="cb8-108"><a href="#cb8-108"></a>    <span class="st">"EMPLOYMENT_TYPE_NAME"</span>, <span class="st">"STATE_NAME"</span>, <span class="st">"MIN_EDULEVELS_NAME"</span></span>
-<span id="cb8-109"><a href="#cb8-109"></a>])</span>
-<span id="cb8-110"><a href="#cb8-110"></a></span>
-<span id="cb8-111"><a href="#cb8-111"></a><span class="bu">print</span>(<span class="ss">f"✅ Rows after dropping nulls: </span><span class="sc">{</span>df_clean<span class="sc">.</span>count()<span class="sc">:,}</span><span class="ss">"</span>)</span>
-<span id="cb8-112"><a href="#cb8-112"></a></span>
-<span id="cb8-113"><a href="#cb8-113"></a><span class="co"># ------------------------------------------------------</span></span>
-<span id="cb8-114"><a href="#cb8-114"></a><span class="co"># 2. Create new feature: MIN_YEARS_EXPERIENCE_SQ</span></span>
-<span id="cb8-115"><a href="#cb8-115"></a><span class="co"># ------------------------------------------------------</span></span>
-<span id="cb8-116"><a href="#cb8-116"></a>df_clean <span class="op">=</span> df_clean.withColumn(</span>
-<span id="cb8-117"><a href="#cb8-117"></a>    <span class="st">"MIN_YEARS_EXPERIENCE_SQ"</span>,</span>
-<span id="cb8-118"><a href="#cb8-118"></a>    F.<span class="bu">pow</span>(F.col(<span class="st">"MIN_YEARS_EXPERIENCE"</span>), <span class="dv">2</span>)</span>
-<span id="cb8-119"><a href="#cb8-119"></a>)</span>
-<span id="cb8-120"><a href="#cb8-120"></a></span>
-<span id="cb8-121"><a href="#cb8-121"></a><span class="co"># ------------------------------------------------------</span></span>
-<span id="cb8-122"><a href="#cb8-122"></a><span class="co"># 3. Encode categorical variables</span></span>
-<span id="cb8-123"><a href="#cb8-123"></a><span class="co"># ------------------------------------------------------</span></span>
-<span id="cb8-124"><a href="#cb8-124"></a>cat_cols <span class="op">=</span> [<span class="st">"EMPLOYMENT_TYPE_NAME"</span>, <span class="st">"STATE_NAME"</span>, <span class="st">"MIN_EDULEVELS_NAME"</span>]</span>
-<span id="cb8-125"><a href="#cb8-125"></a></span>
-<span id="cb8-126"><a href="#cb8-126"></a>indexers <span class="op">=</span> [</span>
-<span id="cb8-127"><a href="#cb8-127"></a>    StringIndexer(inputCol<span class="op">=</span>c, outputCol<span class="op">=</span><span class="ss">f"</span><span class="sc">{</span>c<span class="sc">}</span><span class="ss">_IDX"</span>, handleInvalid<span class="op">=</span><span class="st">"keep"</span>)</span>
-<span id="cb8-128"><a href="#cb8-128"></a>    <span class="cf">for</span> c <span class="kw">in</span> cat_cols</span>
-<span id="cb8-129"><a href="#cb8-129"></a>]</span>
-<span id="cb8-130"><a href="#cb8-130"></a></span>
-<span id="cb8-131"><a href="#cb8-131"></a>encoders <span class="op">=</span> [</span>
-<span id="cb8-132"><a href="#cb8-132"></a>    OneHotEncoder(inputCol<span class="op">=</span><span class="ss">f"</span><span class="sc">{</span>c<span class="sc">}</span><span class="ss">_IDX"</span>, outputCol<span class="op">=</span><span class="ss">f"</span><span class="sc">{</span>c<span class="sc">}</span><span class="ss">_OHE"</span>)</span>
-<span id="cb8-133"><a href="#cb8-133"></a>    <span class="cf">for</span> c <span class="kw">in</span> cat_cols</span>
-<span id="cb8-134"><a href="#cb8-134"></a>]</span>
-<span id="cb8-135"><a href="#cb8-135"></a></span>
-<span id="cb8-136"><a href="#cb8-136"></a><span class="co"># Apply indexers sequentially</span></span>
-<span id="cb8-137"><a href="#cb8-137"></a><span class="cf">for</span> idx <span class="kw">in</span> indexers:</span>
-<span id="cb8-138"><a href="#cb8-138"></a>    df_clean <span class="op">=</span> idx.fit(df_clean).transform(df_clean)</span>
-<span id="cb8-139"><a href="#cb8-139"></a></span>
-<span id="cb8-140"><a href="#cb8-140"></a><span class="co"># Apply one-hot encoders sequentially</span></span>
-<span id="cb8-141"><a href="#cb8-141"></a><span class="cf">for</span> enc <span class="kw">in</span> encoders:</span>
-<span id="cb8-142"><a href="#cb8-142"></a>    df_clean <span class="op">=</span> enc.fit(df_clean).transform(df_clean)</span>
-<span id="cb8-143"><a href="#cb8-143"></a></span>
-<span id="cb8-144"><a href="#cb8-144"></a><span class="co"># ------------------------------------------------------</span></span>
-<span id="cb8-145"><a href="#cb8-145"></a><span class="co"># 4. Assemble final features</span></span>
-<span id="cb8-146"><a href="#cb8-146"></a><span class="co"># ------------------------------------------------------</span></span>
-<span id="cb8-147"><a href="#cb8-147"></a>numeric_cols <span class="op">=</span> [</span>
-<span id="cb8-148"><a href="#cb8-148"></a>    <span class="st">"MIN_YEARS_EXPERIENCE"</span>, </span>
-<span id="cb8-149"><a href="#cb8-149"></a>    <span class="st">"MAX_YEARS_EXPERIENCE"</span>, </span>
-<span id="cb8-150"><a href="#cb8-150"></a>    <span class="st">"MIN_YEARS_EXPERIENCE_SQ"</span></span>
-<span id="cb8-151"><a href="#cb8-151"></a>]</span>
-<span id="cb8-152"><a href="#cb8-152"></a></span>
-<span id="cb8-153"><a href="#cb8-153"></a>ohe_cols <span class="op">=</span> [<span class="ss">f"</span><span class="sc">{</span>c<span class="sc">}</span><span class="ss">_OHE"</span> <span class="cf">for</span> c <span class="kw">in</span> cat_cols]</span>
-<span id="cb8-154"><a href="#cb8-154"></a></span>
-<span id="cb8-155"><a href="#cb8-155"></a>assembler <span class="op">=</span> VectorAssembler(</span>
-<span id="cb8-156"><a href="#cb8-156"></a>    inputCols<span class="op">=</span>numeric_cols <span class="op">+</span> ohe_cols,</span>
-<span id="cb8-157"><a href="#cb8-157"></a>    outputCol<span class="op">=</span><span class="st">"features"</span></span>
-<span id="cb8-158"><a href="#cb8-158"></a>)</span>
-<span id="cb8-159"><a href="#cb8-159"></a></span>
-<span id="cb8-160"><a href="#cb8-160"></a>df_fe <span class="op">=</span> assembler.transform(df_clean)</span>
-<span id="cb8-161"><a href="#cb8-161"></a></span>
-<span id="cb8-162"><a href="#cb8-162"></a><span class="co"># ------------------------------------------------------</span></span>
-<span id="cb8-163"><a href="#cb8-163"></a><span class="co"># 5. Show sample of processed data</span></span>
-<span id="cb8-164"><a href="#cb8-164"></a><span class="co"># ------------------------------------------------------</span></span>
-<span id="cb8-165"><a href="#cb8-165"></a>df_fe.select(</span>
-<span id="cb8-166"><a href="#cb8-166"></a>    <span class="st">"SALARY"</span>, <span class="st">"MIN_YEARS_EXPERIENCE"</span>, <span class="st">"STATE_NAME"</span>, <span class="st">"features"</span></span>
-<span id="cb8-167"><a href="#cb8-167"></a>).show(<span class="dv">5</span>, truncate<span class="op">=</span><span class="va">False</span>)</span>
-<span id="cb8-168"><a href="#cb8-168"></a></span>
-<span id="cb8-169"><a href="#cb8-169"></a><span class="in">```</span></span>
-<span id="cb8-170"><a href="#cb8-170"></a></span>
-<span id="cb8-171"><a href="#cb8-171"></a></span>
-<span id="cb8-172"><a href="#cb8-172"></a><span class="fu"># Train/Test Split</span></span>
-<span id="cb8-173"><a href="#cb8-173"></a></span>
-<span id="cb8-174"><a href="#cb8-174"></a>Splitting the data into training and testing sets ensures that the model is evaluated on unseen data, which helps measure its generalization performance.  </span>
-<span id="cb8-175"><a href="#cb8-175"></a>Here an **80/20 split** is used, a common practice that provides a large enough training set while reserving sufficient data for evaluation.</span>
-<span id="cb8-176"><a href="#cb8-176"></a></span>
-<span id="cb8-179"><a href="#cb8-179"></a><span class="in">```{python}</span></span>
-<span id="cb8-180"><a href="#cb8-180"></a><span class="co"># ======================================================</span></span>
-<span id="cb8-181"><a href="#cb8-181"></a><span class="co"># TRAIN / </span><span class="al">TEST</span><span class="co"> SPLIT</span></span>
-<span id="cb8-182"><a href="#cb8-182"></a><span class="co"># ======================================================</span></span>
-<span id="cb8-183"><a href="#cb8-183"></a></span>
-<span id="cb8-184"><a href="#cb8-184"></a><span class="co"># Perform random split with reproducibility</span></span>
-<span id="cb8-185"><a href="#cb8-185"></a>train_df, test_df <span class="op">=</span> df_fe.randomSplit([<span class="fl">0.8</span>, <span class="fl">0.2</span>], seed<span class="op">=</span><span class="dv">42</span>)</span>
-<span id="cb8-186"><a href="#cb8-186"></a></span>
-<span id="cb8-187"><a href="#cb8-187"></a><span class="co"># Display record counts for each subset</span></span>
-<span id="cb8-188"><a href="#cb8-188"></a>train_count <span class="op">=</span> train_df.count()</span>
-<span id="cb8-189"><a href="#cb8-189"></a>test_count <span class="op">=</span> test_df.count()</span>
-<span id="cb8-190"><a href="#cb8-190"></a>total_count <span class="op">=</span> df_fe.count()</span>
-<span id="cb8-191"><a href="#cb8-191"></a></span>
-<span id="cb8-192"><a href="#cb8-192"></a><span class="bu">print</span>(<span class="ss">f"✅ Total records: </span><span class="sc">{</span>total_count<span class="sc">:,}</span><span class="ss">"</span>)</span>
-<span id="cb8-193"><a href="#cb8-193"></a><span class="bu">print</span>(<span class="ss">f"🧠 Training set: </span><span class="sc">{</span>train_count<span class="sc">:,}</span><span class="ss"> rows (</span><span class="sc">{</span>train_count<span class="op">/</span>total_count<span class="sc">:.1%}</span><span class="ss">)"</span>)</span>
-<span id="cb8-194"><a href="#cb8-194"></a><span class="bu">print</span>(<span class="ss">f"🧾 Testing set:  </span><span class="sc">{</span>test_count<span class="sc">:,}</span><span class="ss"> rows (</span><span class="sc">{</span>test_count<span class="op">/</span>total_count<span class="sc">:.1%}</span><span class="ss">)"</span>)</span>
-<span id="cb8-195"><a href="#cb8-195"></a></span>
-<span id="cb8-196"><a href="#cb8-196"></a><span class="in">```</span></span>
-<span id="cb8-197"><a href="#cb8-197"></a></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6" data-shortcodes="false"><pre class="sourceCode numberSource markdown number-lines code-with-copy"><code class="sourceCode markdown"><span id="cb6-1"><a href="#cb6-1"></a><span class="co">---</span></span>
+<span id="cb6-2"><a href="#cb6-2"></a><span class="an">title:</span><span class="co"> "Assignment 04 — Lab 04 Machine Learning on Scale"</span></span>
+<span id="cb6-3"><a href="#cb6-3"></a><span class="an">subtitle:</span><span class="co"> "Causal and Predictive Analytics in Spark"</span></span>
+<span id="cb6-4"><a href="#cb6-4"></a><span class="an">author:</span></span>
+<span id="cb6-5"><a href="#cb6-5"></a><span class="co">  - name: "Othmane Elouardi"</span></span>
+<span id="cb6-6"><a href="#cb6-6"></a><span class="co">    affiliations:</span></span>
+<span id="cb6-7"><a href="#cb6-7"></a><span class="co">      - id: bu</span></span>
+<span id="cb6-8"><a href="#cb6-8"></a><span class="co">        name: "Boston University"</span></span>
+<span id="cb6-9"><a href="#cb6-9"></a><span class="co">        city: "Boston"</span></span>
+<span id="cb6-10"><a href="#cb6-10"></a><span class="co">        state: "MA"</span></span>
+<span id="cb6-11"><a href="#cb6-11"></a><span class="an">date:</span><span class="co"> "2025-10-08"</span></span>
+<span id="cb6-12"><a href="#cb6-12"></a><span class="an">number-sections:</span><span class="co"> true</span></span>
+<span id="cb6-13"><a href="#cb6-13"></a><span class="an">format:</span></span>
+<span id="cb6-14"><a href="#cb6-14"></a><span class="co">  html:</span></span>
+<span id="cb6-15"><a href="#cb6-15"></a><span class="co">    theme:</span></span>
+<span id="cb6-16"><a href="#cb6-16"></a><span class="co">      light: lux</span></span>
+<span id="cb6-17"><a href="#cb6-17"></a><span class="co">      dark: slate</span></span>
+<span id="cb6-18"><a href="#cb6-18"></a><span class="co">    toc: true</span></span>
+<span id="cb6-19"><a href="#cb6-19"></a><span class="co">    toc-depth: 3</span></span>
+<span id="cb6-20"><a href="#cb6-20"></a><span class="co">    toc-location: right</span></span>
+<span id="cb6-21"><a href="#cb6-21"></a><span class="co">    smooth-scroll: true</span></span>
+<span id="cb6-22"><a href="#cb6-22"></a><span class="co">    code-fold: true</span></span>
+<span id="cb6-23"><a href="#cb6-23"></a><span class="co">    code-tools: true</span></span>
+<span id="cb6-24"><a href="#cb6-24"></a><span class="co">    code-line-numbers: true</span></span>
+<span id="cb6-25"><a href="#cb6-25"></a><span class="co">    highlight-style: a11y</span></span>
+<span id="cb6-26"><a href="#cb6-26"></a><span class="co">    page-layout: article</span></span>
+<span id="cb6-27"><a href="#cb6-27"></a><span class="co">    css: styles.css</span></span>
+<span id="cb6-28"><a href="#cb6-28"></a><span class="co">    grid:</span></span>
+<span id="cb6-29"><a href="#cb6-29"></a><span class="co">      body-width: 900px</span></span>
+<span id="cb6-30"><a href="#cb6-30"></a><span class="co">      margin-width: 280px</span></span>
+<span id="cb6-31"><a href="#cb6-31"></a><span class="an">execute:</span></span>
+<span id="cb6-32"><a href="#cb6-32"></a><span class="co">  echo: true</span></span>
+<span id="cb6-33"><a href="#cb6-33"></a><span class="co">  warning: false</span></span>
+<span id="cb6-34"><a href="#cb6-34"></a><span class="co">  error: false</span></span>
+<span id="cb6-35"><a href="#cb6-35"></a><span class="co">  freeze: auto</span></span>
+<span id="cb6-36"><a href="#cb6-36"></a><span class="an">jupyter:</span><span class="co"> env</span></span>
+<span id="cb6-37"><a href="#cb6-37"></a><span class="co">---</span></span>
+<span id="cb6-38"><a href="#cb6-38"></a></span>
+<span id="cb6-39"><a href="#cb6-39"></a></span>
+<span id="cb6-40"><a href="#cb6-40"></a><span class="fu"># Introduction</span></span>
+<span id="cb6-41"><a href="#cb6-41"></a>PySpark is applied to large-scale employment data from the Lightcast Job Postings dataset to develop and evaluate salary prediction models. The workflow involves engineering key features from structured columns, training a Linear Regression model, and assessing performance using RMSE and R² metrics. Visual diagnostic plots are generated to interpret model accuracy and residual patterns. The final analysis is documented, version-controlled, and submitted via GitHub, demonstrating end-to-end data processing and predictive modeling on a distributed computing platform.</span>
+<span id="cb6-42"><a href="#cb6-42"></a></span>
+<span id="cb6-43"><a href="#cb6-43"></a><span class="fu"># Load the Dataset</span></span>
+<span id="cb6-44"><a href="#cb6-44"></a> **PySpark** is used to load the *Lightcast Job Postings* dataset into a Spark DataFrame.  </span>
+<span id="cb6-45"><a href="#cb6-45"></a>This approach enables us to efficiently handle large datasets within the EC2 environment before proceeding with feature engineering and regression analysis.</span>
+<span id="cb6-46"><a href="#cb6-46"></a></span>
+<span id="cb6-49"><a href="#cb6-49"></a><span class="in">```{python}</span></span>
+<span id="cb6-50"><a href="#cb6-50"></a><span class="co"># Load the Lightcast dataset with PySpark</span></span>
+<span id="cb6-51"><a href="#cb6-51"></a></span>
+<span id="cb6-52"><a href="#cb6-52"></a><span class="im">from</span> pyspark.sql <span class="im">import</span> SparkSession</span>
+<span id="cb6-53"><a href="#cb6-53"></a><span class="im">import</span> os</span>
+<span id="cb6-54"><a href="#cb6-54"></a></span>
+<span id="cb6-55"><a href="#cb6-55"></a><span class="co"># Initialize Spark session </span></span>
+<span id="cb6-56"><a href="#cb6-56"></a>spark <span class="op">=</span> (</span>
+<span id="cb6-57"><a href="#cb6-57"></a>    SparkSession.builder</span>
+<span id="cb6-58"><a href="#cb6-58"></a>    .appName(<span class="st">"LightcastData"</span>)</span>
+<span id="cb6-59"><a href="#cb6-59"></a>    .config(<span class="st">"spark.driver.memory"</span>, <span class="st">"1g"</span>)</span>
+<span id="cb6-60"><a href="#cb6-60"></a>    .getOrCreate()</span>
+<span id="cb6-61"><a href="#cb6-61"></a>)</span>
+<span id="cb6-62"><a href="#cb6-62"></a></span>
+<span id="cb6-63"><a href="#cb6-63"></a><span class="co"># Define dataset path</span></span>
+<span id="cb6-64"><a href="#cb6-64"></a>csv_path <span class="op">=</span> <span class="st">"data/lightcast_job_postings.csv"</span></span>
+<span id="cb6-65"><a href="#cb6-65"></a></span>
+<span id="cb6-66"><a href="#cb6-66"></a><span class="co"># Check path validity</span></span>
+<span id="cb6-67"><a href="#cb6-67"></a><span class="cf">if</span> <span class="kw">not</span> os.path.exists(csv_path):</span>
+<span id="cb6-68"><a href="#cb6-68"></a>    <span class="cf">raise</span> <span class="pp">FileNotFoundError</span>(<span class="ss">f"❌ Could not find </span><span class="sc">{</span>csv_path<span class="sc">}</span><span class="ss">. Please ensure the file exists in the data/ folder."</span>)</span>
+<span id="cb6-69"><a href="#cb6-69"></a></span>
+<span id="cb6-70"><a href="#cb6-70"></a><span class="co"># Load dataset</span></span>
+<span id="cb6-71"><a href="#cb6-71"></a>df <span class="op">=</span> (</span>
+<span id="cb6-72"><a href="#cb6-72"></a>    spark.read</span>
+<span id="cb6-73"><a href="#cb6-73"></a>    .option(<span class="st">"header"</span>, <span class="st">"true"</span>)       <span class="co"># First row as headers</span></span>
+<span id="cb6-74"><a href="#cb6-74"></a>    .option(<span class="st">"inferSchema"</span>, <span class="st">"true"</span>)  <span class="co"># Auto-detect data types</span></span>
+<span id="cb6-75"><a href="#cb6-75"></a>    .option(<span class="st">"multiLine"</span>, <span class="st">"true"</span>)    <span class="co"># Handle multi-line text fields</span></span>
+<span id="cb6-76"><a href="#cb6-76"></a>    .option(<span class="st">"escape"</span>, <span class="st">"</span><span class="ch">\"</span><span class="st">"</span>)         <span class="co"># Handle embedded quotes</span></span>
+<span id="cb6-77"><a href="#cb6-77"></a>    .csv(csv_path)</span>
+<span id="cb6-78"><a href="#cb6-78"></a>)</span>
+<span id="cb6-79"><a href="#cb6-79"></a></span>
+<span id="cb6-80"><a href="#cb6-80"></a><span class="co"># Confirm load success</span></span>
+<span id="cb6-81"><a href="#cb6-81"></a><span class="bu">print</span>(<span class="st">"✅ Dataset successfully loaded!"</span>)</span>
+<span id="cb6-82"><a href="#cb6-82"></a>df.printSchema()</span>
+<span id="cb6-83"><a href="#cb6-83"></a>df.show(<span class="dv">5</span>, truncate<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb6-84"><a href="#cb6-84"></a><span class="in">```</span></span>
+<span id="cb6-85"><a href="#cb6-85"></a></span>
+<span id="cb6-86"><a href="#cb6-86"></a></span>
+<span id="cb6-87"><a href="#cb6-87"></a></span>
+<span id="cb6-88"><a href="#cb6-88"></a><span class="fu"># Feature Engineering</span></span>
+<span id="cb6-89"><a href="#cb6-89"></a></span>
+<span id="cb6-90"><a href="#cb6-90"></a>Feature engineering is a crucial step in preparing the dataset for machine learning.  </span>
+<span id="cb6-91"><a href="#cb6-91"></a>This section cleans the data, encodes categorical variables, and constructs feature vectors for model training.</span>
+<span id="cb6-92"><a href="#cb6-92"></a></span>
+<span id="cb6-95"><a href="#cb6-95"></a><span class="in">```{python}</span></span>
+<span id="cb6-96"><a href="#cb6-96"></a><span class="co"># ======================================================</span></span>
+<span id="cb6-97"><a href="#cb6-97"></a><span class="co"># FEATURE ENGINEERING</span></span>
+<span id="cb6-98"><a href="#cb6-98"></a><span class="co"># ======================================================</span></span>
+<span id="cb6-99"><a href="#cb6-99"></a></span>
+<span id="cb6-100"><a href="#cb6-100"></a><span class="im">from</span> pyspark.sql <span class="im">import</span> functions <span class="im">as</span> F</span>
+<span id="cb6-101"><a href="#cb6-101"></a><span class="im">from</span> pyspark.ml.feature <span class="im">import</span> StringIndexer, OneHotEncoder, VectorAssembler</span>
+<span id="cb6-102"><a href="#cb6-102"></a></span>
+<span id="cb6-103"><a href="#cb6-103"></a><span class="co"># ------------------------------------------------------</span></span>
+<span id="cb6-104"><a href="#cb6-104"></a><span class="co"># 1. Drop rows with missing target or key features</span></span>
+<span id="cb6-105"><a href="#cb6-105"></a><span class="co"># ------------------------------------------------------</span></span>
+<span id="cb6-106"><a href="#cb6-106"></a>df_clean <span class="op">=</span> df.dropna(subset<span class="op">=</span>[</span>
+<span id="cb6-107"><a href="#cb6-107"></a>    <span class="st">"SALARY"</span>, <span class="st">"MIN_YEARS_EXPERIENCE"</span>, <span class="st">"MAX_YEARS_EXPERIENCE"</span>,</span>
+<span id="cb6-108"><a href="#cb6-108"></a>    <span class="st">"EMPLOYMENT_TYPE_NAME"</span>, <span class="st">"STATE_NAME"</span>, <span class="st">"MIN_EDULEVELS_NAME"</span></span>
+<span id="cb6-109"><a href="#cb6-109"></a>])</span>
+<span id="cb6-110"><a href="#cb6-110"></a></span>
+<span id="cb6-111"><a href="#cb6-111"></a><span class="bu">print</span>(<span class="ss">f"✅ Rows after dropping nulls: </span><span class="sc">{</span>df_clean<span class="sc">.</span>count()<span class="sc">:,}</span><span class="ss">"</span>)</span>
+<span id="cb6-112"><a href="#cb6-112"></a></span>
+<span id="cb6-113"><a href="#cb6-113"></a><span class="co"># ------------------------------------------------------</span></span>
+<span id="cb6-114"><a href="#cb6-114"></a><span class="co"># 2. Create new feature: MIN_YEARS_EXPERIENCE_SQ</span></span>
+<span id="cb6-115"><a href="#cb6-115"></a><span class="co"># ------------------------------------------------------</span></span>
+<span id="cb6-116"><a href="#cb6-116"></a>df_clean <span class="op">=</span> df_clean.withColumn(</span>
+<span id="cb6-117"><a href="#cb6-117"></a>    <span class="st">"MIN_YEARS_EXPERIENCE_SQ"</span>,</span>
+<span id="cb6-118"><a href="#cb6-118"></a>    F.<span class="bu">pow</span>(F.col(<span class="st">"MIN_YEARS_EXPERIENCE"</span>), <span class="dv">2</span>)</span>
+<span id="cb6-119"><a href="#cb6-119"></a>)</span>
+<span id="cb6-120"><a href="#cb6-120"></a></span>
+<span id="cb6-121"><a href="#cb6-121"></a><span class="co"># ------------------------------------------------------</span></span>
+<span id="cb6-122"><a href="#cb6-122"></a><span class="co"># 3. Encode categorical variables</span></span>
+<span id="cb6-123"><a href="#cb6-123"></a><span class="co"># ------------------------------------------------------</span></span>
+<span id="cb6-124"><a href="#cb6-124"></a>cat_cols <span class="op">=</span> [<span class="st">"EMPLOYMENT_TYPE_NAME"</span>, <span class="st">"STATE_NAME"</span>, <span class="st">"MIN_EDULEVELS_NAME"</span>]</span>
+<span id="cb6-125"><a href="#cb6-125"></a></span>
+<span id="cb6-126"><a href="#cb6-126"></a>indexers <span class="op">=</span> [</span>
+<span id="cb6-127"><a href="#cb6-127"></a>    StringIndexer(inputCol<span class="op">=</span>c, outputCol<span class="op">=</span><span class="ss">f"</span><span class="sc">{</span>c<span class="sc">}</span><span class="ss">_IDX"</span>, handleInvalid<span class="op">=</span><span class="st">"keep"</span>)</span>
+<span id="cb6-128"><a href="#cb6-128"></a>    <span class="cf">for</span> c <span class="kw">in</span> cat_cols</span>
+<span id="cb6-129"><a href="#cb6-129"></a>]</span>
+<span id="cb6-130"><a href="#cb6-130"></a></span>
+<span id="cb6-131"><a href="#cb6-131"></a>encoders <span class="op">=</span> [</span>
+<span id="cb6-132"><a href="#cb6-132"></a>    OneHotEncoder(inputCol<span class="op">=</span><span class="ss">f"</span><span class="sc">{</span>c<span class="sc">}</span><span class="ss">_IDX"</span>, outputCol<span class="op">=</span><span class="ss">f"</span><span class="sc">{</span>c<span class="sc">}</span><span class="ss">_OHE"</span>)</span>
+<span id="cb6-133"><a href="#cb6-133"></a>    <span class="cf">for</span> c <span class="kw">in</span> cat_cols</span>
+<span id="cb6-134"><a href="#cb6-134"></a>]</span>
+<span id="cb6-135"><a href="#cb6-135"></a></span>
+<span id="cb6-136"><a href="#cb6-136"></a><span class="co"># Apply indexers sequentially</span></span>
+<span id="cb6-137"><a href="#cb6-137"></a><span class="cf">for</span> idx <span class="kw">in</span> indexers:</span>
+<span id="cb6-138"><a href="#cb6-138"></a>    df_clean <span class="op">=</span> idx.fit(df_clean).transform(df_clean)</span>
+<span id="cb6-139"><a href="#cb6-139"></a></span>
+<span id="cb6-140"><a href="#cb6-140"></a><span class="co"># Apply one-hot encoders sequentially</span></span>
+<span id="cb6-141"><a href="#cb6-141"></a><span class="cf">for</span> enc <span class="kw">in</span> encoders:</span>
+<span id="cb6-142"><a href="#cb6-142"></a>    df_clean <span class="op">=</span> enc.fit(df_clean).transform(df_clean)</span>
+<span id="cb6-143"><a href="#cb6-143"></a></span>
+<span id="cb6-144"><a href="#cb6-144"></a><span class="co"># ------------------------------------------------------</span></span>
+<span id="cb6-145"><a href="#cb6-145"></a><span class="co"># 4. Assemble final features</span></span>
+<span id="cb6-146"><a href="#cb6-146"></a><span class="co"># ------------------------------------------------------</span></span>
+<span id="cb6-147"><a href="#cb6-147"></a>numeric_cols <span class="op">=</span> [</span>
+<span id="cb6-148"><a href="#cb6-148"></a>    <span class="st">"MIN_YEARS_EXPERIENCE"</span>, </span>
+<span id="cb6-149"><a href="#cb6-149"></a>    <span class="st">"MAX_YEARS_EXPERIENCE"</span>, </span>
+<span id="cb6-150"><a href="#cb6-150"></a>    <span class="st">"MIN_YEARS_EXPERIENCE_SQ"</span></span>
+<span id="cb6-151"><a href="#cb6-151"></a>]</span>
+<span id="cb6-152"><a href="#cb6-152"></a></span>
+<span id="cb6-153"><a href="#cb6-153"></a>ohe_cols <span class="op">=</span> [<span class="ss">f"</span><span class="sc">{</span>c<span class="sc">}</span><span class="ss">_OHE"</span> <span class="cf">for</span> c <span class="kw">in</span> cat_cols]</span>
+<span id="cb6-154"><a href="#cb6-154"></a></span>
+<span id="cb6-155"><a href="#cb6-155"></a>assembler <span class="op">=</span> VectorAssembler(</span>
+<span id="cb6-156"><a href="#cb6-156"></a>    inputCols<span class="op">=</span>numeric_cols <span class="op">+</span> ohe_cols,</span>
+<span id="cb6-157"><a href="#cb6-157"></a>    outputCol<span class="op">=</span><span class="st">"features"</span></span>
+<span id="cb6-158"><a href="#cb6-158"></a>)</span>
+<span id="cb6-159"><a href="#cb6-159"></a></span>
+<span id="cb6-160"><a href="#cb6-160"></a>df_fe <span class="op">=</span> assembler.transform(df_clean)</span>
+<span id="cb6-161"><a href="#cb6-161"></a></span>
+<span id="cb6-162"><a href="#cb6-162"></a><span class="co"># ------------------------------------------------------</span></span>
+<span id="cb6-163"><a href="#cb6-163"></a><span class="co"># 5. Show sample of processed data</span></span>
+<span id="cb6-164"><a href="#cb6-164"></a><span class="co"># ------------------------------------------------------</span></span>
+<span id="cb6-165"><a href="#cb6-165"></a>df_fe.select(</span>
+<span id="cb6-166"><a href="#cb6-166"></a>    <span class="st">"SALARY"</span>, <span class="st">"MIN_YEARS_EXPERIENCE"</span>, <span class="st">"STATE_NAME"</span>, <span class="st">"features"</span></span>
+<span id="cb6-167"><a href="#cb6-167"></a>).show(<span class="dv">5</span>, truncate<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb6-168"><a href="#cb6-168"></a></span>
+<span id="cb6-169"><a href="#cb6-169"></a><span class="in">```</span></span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

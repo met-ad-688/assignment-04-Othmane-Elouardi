@@ -163,3 +163,29 @@ df_fe.select(
 ).show(5, truncate=False)
 
 ```
+
+# Train/Test Split
+
+Splitting the data into training and testing sets ensures that the model is evaluated on unseen data, which helps measure its generalization performance.  
+Here an **80/20 split** is used, a common practice that provides a large enough training set while reserving sufficient data for evaluation.
+
+```{python}
+# ======================================================
+# TRAIN / TEST SPLIT
+# ======================================================
+
+# Perform random split with reproducibility
+train_df, test_df = df_fe.randomSplit([0.8, 0.2], seed=42)
+
+# Display record counts for each subset
+train_count = train_df.count()
+test_count = test_df.count()
+total_count = df_fe.count()
+
+print(f"✅ Total records: {total_count:,}")
+print(f"🧠 Training set: {train_count:,} rows ({train_count/total_count:.1%})")
+print(f"🧾 Testing set:  {test_count:,} rows ({test_count/total_count:.1%})")
+
+```
+
+
