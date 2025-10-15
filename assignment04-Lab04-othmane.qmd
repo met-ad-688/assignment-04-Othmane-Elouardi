@@ -820,3 +820,272 @@ plt.close()
 print("✅ Saved static plot to: _output/rf_feature_importance.png")
 
 ```
+
+
+# Compare 3 Models — GLR, Polynomial, RF
+
+
+```{python}
+# ======================================================
+# Compare GLR, Polynomial LR (degree-2 on MIN_YEARS only), and RF
+#  - Robust to pred column names (uses model.getPredictionCol())
+#  - RMSE, MAE, AIC, BIC (RF uses Gaussian RSS pseudo AIC/BIC)
+#  - Unified predictions on the same TEST set
+#  - Interactive Plotly 2x2 grid + static PNG to _output/
+# ======================================================
+
+from pyspark.ml.regression import LinearRegression, GeneralizedLinearRegression, RandomForestRegressor
+from pyspark.ml.feature import VectorAssembler
+from pyspark.ml.evaluation import RegressionEvaluator
+from pyspark.sql import functions as F
+import numpy as np, math, os
+
+# ---------- Safety: make sure pruned frames exist and are materialized ----------
+try:
+    train_nz, test_nz
+except NameError:
+    raise RuntimeError("train_nz/test_nz not found. Run your split + feature steps first.")
+
+train_nz = train_nz.repartition(4).cache()
+test_nz  = test_nz.repartition(4).cache()
+_ = train_nz.count(); _ = test_nz.count()
+
+# ---------- Common settings ----------
+RIDGE = 1e-4
+MAXITER_LR  = 200
+MAXITER_GLR = 120
+TOL  = 1e-5
+SEED = 42
+
+# ---------- Helper: AIC/BIC from residuals (Gaussian) ----------
+def aic_bic_from_residuals(y_true, y_pred, k):
+    """
+    AIC = n*ln(RSS/n) + 2k
+    BIC = n*ln(RSS/n) + k*ln(n)
+    """
+    yt = np.asarray(y_true, dtype=float)
+    yp = np.asarray(y_pred, dtype=float)
+    n = yt.shape[0]
+    rss = float(np.sum((yt - yp) ** 2))
+    sigma2 = rss / max(n, 1)
+    aic = n * math.log(max(sigma2, 1e-12)) + 2 * k
+    bic = n * math.log(max(sigma2, 1e-12)) + k * math.log(max(n, 1))
+    return aic, bic, rss, n
+
+# ======================================================
+# 1) GLR (reuse if available)
+# ======================================================
+try:
+    glr_model
+    glr_sum = glr_model.summary
+except NameError:
+    glr = GeneralizedLinearRegression(
+        featuresCol="features", labelCol="SALARY",
+        predictionCol="prediction_glr",
+        family="gaussian", link="identity",
+        fitIntercept=True, regParam=RIDGE, maxIter=MAXITER_GLR, tol=TOL
+    )
+    glr_model = glr.fit(train_nz)
+    glr_sum = glr_model.summary
+
+pred_col_glr = glr_model.getPredictionCol()  # robust to name
+pred_glr_df = glr_model.transform(test_nz).select(
+    F.col("SALARY"), F.col(pred_col_glr).alias("pred_glr")
+).cache()
+_ = pred_glr_df.count()
+
+e_rmse_glr = RegressionEvaluator(labelCol="SALARY", predictionCol="pred_glr", metricName="rmse")
+e_mae_glr  = RegressionEvaluator(labelCol="SALARY", predictionCol="pred_glr", metricName="mae")
+rmse_glr = e_rmse_glr.evaluate(pred_glr_df)
+mae_glr  = e_mae_glr.evaluate(pred_glr_df)
+
+# GLR: official AIC + BIC via residuals (k = p + 1)
+aic_glr = float(getattr(glr_sum, "aic", float("nan")))
+k_glr   = int(glr_model.coefficients.size) + 1
+glr_pd  = pred_glr_df.toPandas()
+_, bic_glr, _, _ = aic_bic_from_residuals(glr_pd["SALARY"], glr_pd["pred_glr"], k_glr)
+
+# ======================================================
+# 2) Polynomial LR (degree-2 on MIN_YEARS only — avoids OHE explosion)
+# ======================================================
+def attach_poly_sq(df_with_columns):
+    """
+    Adds MIN_YEARS_EXPERIENCE_SQ; if missing, fills 0.0 to keep the pipeline running.
+    Then appends it to the existing 'features' vector -> 'features_poly2'.
+    """
+    if "MIN_YEARS_EXPERIENCE" in df_with_columns.columns:
+        df1 = df_with_columns.withColumn(
+            "MIN_YEARS_EXPERIENCE_SQ", F.pow(F.col("MIN_YEARS_EXPERIENCE"), F.lit(2.0))
+        )
+    else:
+        df1 = df_with_columns.withColumn("MIN_YEARS_EXPERIENCE_SQ", F.lit(0.0))
+    va = VectorAssembler(inputCols=["features", "MIN_YEARS_EXPERIENCE_SQ"], outputCol="features_poly2")
+    return va.transform(df1)
+
+# Prefer original split frames if you have them; else use pruned frames directly
+try:
+    train_poly = attach_poly_sq(train_df)
+    test_poly  = attach_poly_sq(test_df)
+except NameError:
+    train_poly = attach_poly_sq(train_nz)
+    test_poly  = attach_poly_sq(test_nz)
+
+lr_poly = LinearRegression(
+    featuresCol="features_poly2", labelCol="SALARY", predictionCol="pred_poly",
+    fitIntercept=True, regParam=RIDGE, elasticNetParam=0.0,
+    solver="l-bfgs", maxIter=MAXITER_LR, tol=TOL, standardization=True
+)
+lr_poly_model = lr_poly.fit(train_poly)
+pred_poly_df  = lr_poly_model.transform(test_poly).select("SALARY", "pred_poly").cache()
+_ = pred_poly_df.count()
+
+e_rmse_poly = RegressionEvaluator(labelCol="SALARY", predictionCol="pred_poly", metricName="rmse")
+e_mae_poly  = RegressionEvaluator(labelCol="SALARY", predictionCol="pred_poly", metricName="mae")
+rmse_poly = e_rmse_poly.evaluate(pred_poly_df)
+mae_poly  = e_mae_poly.evaluate(pred_poly_df)
+
+k_poly   = int(lr_poly_model.coefficients.size) + 1
+poly_pd  = pred_poly_df.toPandas()
+aic_poly, bic_poly, _, _ = aic_bic_from_residuals(poly_pd["SALARY"], poly_pd["pred_poly"], k_poly)
+
+# ======================================================
+# 3) Random Forest (reuse if exists)
+# ======================================================
+try:
+    rf_model
+except NameError:
+    rf_model = RandomForestRegressor(
+        featuresCol="features", labelCol="SALARY", predictionCol="pred_rf",
+        numTrees=200, maxDepth=6, featureSubsetStrategy="sqrt",
+        subsamplingRate=0.8, minInstancesPerNode=2, maxBins=64, seed=SEED
+    ).fit(train_nz)
+
+pred_col_rf = rf_model.getPredictionCol()
+pred_rf_df = rf_model.transform(test_nz).select(
+    F.col("SALARY"), F.col(pred_col_rf).alias("pred_rf")
+).cache()
+_ = pred_rf_df.count()
+
+e_rmse_rf = RegressionEvaluator(labelCol="SALARY", predictionCol="pred_rf", metricName="rmse")
+e_mae_rf  = RegressionEvaluator(labelCol="SALARY", predictionCol="pred_rf", metricName="mae")
+rmse_rf = e_rmse_rf.evaluate(pred_rf_df)
+mae_rf  = e_mae_rf.evaluate(pred_rf_df)
+
+# Pseudo AIC/BIC via Gaussian RSS; k = (# nonzero importances + 1)
+k_rf  = int(len(rf_model.featureImportances.indices) + 1)
+rf_pd = pred_rf_df.toPandas()
+aic_rf, bic_rf, _, _ = aic_bic_from_residuals(rf_pd["SALARY"], rf_pd["pred_rf"], k_rf)
+
+# ======================================================
+# 4) Unified predictions DataFrame (for plotting)
+# ======================================================
+preds_join = pred_glr_df.alias("g") \
+    .join(pred_poly_df.alias("p"), on="SALARY", how="inner") \
+    .join(pred_rf_df.alias("r"),   on="SALARY", how="inner") \
+    .select(
+        F.col("SALARY").alias("actual"),
+        F.col("g.pred_glr").alias("pred_glr"),
+        F.col("p.pred_poly").alias("pred_poly"),
+        F.col("r.pred_rf").alias("pred_rf"),
+    ).cache()
+_ = preds_join.count()
+
+print("✅ Metrics")
+print(f"GLR:   RMSE={rmse_glr:,.2f} | MAE={mae_glr:,.2f} | AIC={aic_glr:,.2f} | BIC={bic_glr:,.2f}")
+print(f"Poly:  RMSE={rmse_poly:,.2f} | MAE={mae_poly:,.2f} | AIC={aic_poly:,.2f} | BIC={bic_poly:,.2f}")
+print(f"RF:    RMSE={rmse_rf:,.2f}  | MAE={mae_rf:,.2f}  | AIC~{aic_rf:,.2f} | BIC~{bic_rf:,.2f}  (pseudo)")
+
+# ======================================================
+# 5) Interactive 2x2 grid (Plotly) + Static PNG to _output/
+# ======================================================
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+pdf = preds_join.toPandas()  # test set is modest; ok to collect
+
+rmse_dict = {"GLR": rmse_glr, "Poly": rmse_poly, "RF": rmse_rf}
+best_name = min(rmse_dict, key=rmse_dict.get)
+best_pred_col = {"GLR": "pred_glr", "Poly": "pred_poly", "RF": "pred_rf"}[best_name]
+
+fig = make_subplots(
+    rows=2, cols=2,
+    subplot_titles=("GLR: Actual vs Pred", "Polynomial LR: Actual vs Pred",
+                    "Random Forest: Actual vs Pred", f"Residuals ({best_name})"),
+    horizontal_spacing=0.08, vertical_spacing=0.12
+)
+
+def diag_minmax(x):
+    return float(np.nanmin(x)), float(np.nanmax(x))
+
+a_min, a_max = diag_minmax(pdf["actual"])
+
+fig.add_trace(go.Scattergl(x=pdf["actual"], y=pdf["pred_glr"], mode="markers",
+                           name=f"GLR (RMSE={rmse_glr:,.0f})", opacity=0.5), row=1, col=1)
+fig.add_trace(go.Scattergl(x=[a_min, a_max], y=[a_min, a_max], mode="lines",
+                           line=dict(dash="dash"), showlegend=False), row=1, col=1)
+
+fig.add_trace(go.Scattergl(x=pdf["actual"], y=pdf["pred_poly"], mode="markers",
+                           name=f"Poly (RMSE={rmse_poly:,.0f})", opacity=0.5), row=1, col=2)
+fig.add_trace(go.Scattergl(x=[a_min, a_max], y=[a_min, a_max], mode="lines",
+                           line=dict(dash="dash"), showlegend=False), row=1, col=2)
+
+fig.add_trace(go.Scattergl(x=pdf["actual"], y=pdf["pred_rf"], mode="markers",
+                           name=f"RF (RMSE={rmse_rf:,.0f})", opacity=0.5), row=2, col=1)
+fig.add_trace(go.Scattergl(x=[a_min, a_max], y=[a_min, a_max], mode="lines",
+                           line=dict(dash="dash"), showlegend=False), row=2, col=1)
+
+resid = pdf["actual"] - pdf[best_pred_col]
+fig.add_trace(go.Histogram(x=resid, name=f"{best_name} Residuals", nbinsx=40), row=2, col=2)
+
+fig.update_xaxes(title_text="Actual Salary", row=1, col=1)
+fig.update_yaxes(title_text="Predicted Salary", row=1, col=1)
+fig.update_xaxes(title_text="Actual Salary", row=1, col=2)
+fig.update_yaxes(title_text="Predicted Salary", row=1, col=2)
+fig.update_xaxes(title_text="Actual Salary", row=2, col=1)
+fig.update_yaxes(title_text="Predicted Salary", row=2, col=1)
+fig.update_xaxes(title_text="Residual", row=2, col=2)
+
+fig.update_layout(height=720, width=980, title_text="Model Comparison: GLR vs Polynomial vs Random Forest")
+fig.show()
+
+# ----- Save static PNG without kaleido (matplotlib fallback) -----
+import matplotlib.pyplot as plt
+try:
+    import seaborn as sns
+    use_sns = True
+except Exception:
+    use_sns = False
+
+os.makedirs("_output", exist_ok=True)
+plt.figure(figsize=(11.5, 8.5))
+
+ax1 = plt.subplot(2,2,1)
+if use_sns: sns.scatterplot(x=pdf["actual"], y=pdf["pred_glr"], s=15, alpha=0.5, ax=ax1)
+else:       ax1.scatter(pdf["actual"], pdf["pred_glr"], s=10, alpha=0.5)
+ax1.plot([a_min, a_max], [a_min, a_max], linestyle="--")
+ax1.set_title(f"GLR (RMSE={rmse_glr:,.0f})"); ax1.set_xlabel("Actual"); ax1.set_ylabel("Predicted")
+
+ax2 = plt.subplot(2,2,2)
+if use_sns: sns.scatterplot(x=pdf["actual"], y=pdf["pred_poly"], s=15, alpha=0.5, ax=ax2)
+else:       ax2.scatter(pdf["actual"], pdf["pred_poly"], s=10, alpha=0.5)
+ax2.plot([a_min, a_max], [a_min, a_max], linestyle="--")
+ax2.set_title(f"Polynomial (RMSE={rmse_poly:,.0f})"); ax2.set_xlabel("Actual"); ax2.set_ylabel("Predicted")
+
+ax3 = plt.subplot(2,2,3)
+if use_sns: sns.scatterplot(x=pdf["actual"], y=pdf["pred_rf"], s=15, alpha=0.5, ax=ax3)
+else:       ax3.scatter(pdf["actual"], pdf["pred_rf"], s=10, alpha=0.5)
+ax3.plot([a_min, a_max], [a_min, a_max], linestyle="--")
+ax3.set_title(f"Random Forest (RMSE={rmse_rf:,.0f})"); ax3.set_xlabel("Actual"); ax3.set_ylabel("Predicted")
+
+ax4 = plt.subplot(2,2,4)
+if use_sns: sns.histplot(resid, bins=40, kde=False, ax=ax4)
+else:       ax4.hist(resid, bins=40)
+ax4.set_title(f"{best_name} Residuals"); ax4.set_xlabel("Residual"); ax4.set_ylabel("Count")
+
+plt.tight_layout()
+plt.savefig("_output/model_comparison_grid.png", dpi=200)
+plt.close()
+
+print("✅ Saved static grid to: _output/model_comparison_grid.png")
+
+```
