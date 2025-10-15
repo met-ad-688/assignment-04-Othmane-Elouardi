@@ -760,78 +760,35 @@ The analysis revealed that experience-related variables and company type were th
 # Diagnostic Plot
 
 ```{python}
-
-# --- Interactive Diagnostic Plots (Plotly) for Spark Regression ---
-
-# CONFIG: set this to your label column
-label_col = label_col  # e.g., "label" or "label_log"
+# === Interactive Diagnostic Plots ===
 
 import numpy as np
 import pandas as pd
-from scipy.stats import norm
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from IPython.display import display, HTML
 import os
 
-# 1) Get predictions & residuals safely from Spark
-#    - Drop rows with null/NaN/Inf labels or predictions
-#    - Downsample to keep the page responsive
-spark_preds = (
+# -------------------------------------------------------
+# 1) Get data from Spark model
+# -------------------------------------------------------
+N_MAX = 50000
+pdf = (
     model.transform(df_fe)
          .select(label_col, "prediction")
-         .dropna(subset=[label_col, "prediction"])
+         .limit(N_MAX)
+         .toPandas()
+         .rename(columns={label_col: "actual", "prediction": "pred"})
 )
 
-# Filter out non-finite labels/preds (Spark side)
-from pyspark.sql import functions as F
-finite = (
-    spark_preds
-      .where(~F.isnan(F.col(label_col)))
-      .where(~F.isnan(F.col("prediction")))
-)
+pdf = pdf.replace([np.inf, -np.inf], np.nan).dropna(subset=["actual", "pred"])
+pdf["resid"] = pdf["actual"] - pdf["pred"]
 
-# Limit rows for interactivity (tune as needed)
-MAX_ROWS = 50_000
-n_rows = finite.count()
-if n_rows > MAX_ROWS:
-    frac = MAX_ROWS / n_rows
-    finite = finite.sample(withReplacement=False, fraction=frac, seed=42)
+mu = float(pdf["resid"].mean())
+sd = float(pdf["resid"].std(ddof=1)) or 1.0
 
-pdf = finite.toPandas()
-if pdf.empty:
-    raise ValueError(
-        "No rows available for diagnostics after filtering. "
-        "Check that your model produced predictions and label_col exists."
-    )
-
-# 2) Compute residuals and standardized residuals
-pdf["residual"] = pdf[label_col] - pdf["prediction"]
-resid = pdf["residual"].values
-pred  = pdf["prediction"].values
-y     = pdf[label_col].values
-
-mu = np.nanmean(resid)
-sd = np.nanstd(resid)
-sd = sd if (sd is not None and sd > 0) else 1.0
-z = (resid - mu) / sd
-
-# 3) QQ data (theoretical normal quantiles vs ordered standardized residuals)
-n = len(z)
-# Use plotting positions for better tails
-pp = (np.arange(1, n + 1) - 0.5) / n
-theoretical = norm.ppf(pp)
-ordered = np.sort(z)
-
-# Reference line for QQ (fit a simple line through quartiles)
-x1, x3 = np.percentile(theoretical, [25, 75])
-y1, y3 = np.percentile(ordered, [25, 75])
-slope = (y3 - y1) / (x3 - x1) if x3 != x1 else 1.0
-intercept = y1 - slope * x1
-qq_line_x = np.array([theoretical.min(), theoretical.max()])
-qq_line_y = intercept + slope * qq_line_x
-
-# 4) Build interactive 2×2 dashboard
+# -------------------------------------------------------
+# 2) Build 2×2 Interactive Plot Grid
+# -------------------------------------------------------
 fig = make_subplots(
     rows=2, cols=2,
     subplot_titles=(
@@ -840,93 +797,147 @@ fig = make_subplots(
         "Histogram of Residuals",
         "QQ Plot of Residuals"
     ),
-    horizontal_spacing=0.12,
-    vertical_spacing=0.15
+    horizontal_spacing=0.08,
+    vertical_spacing=0.12
 )
 
-# (1) Predicted vs Actual
+# -------------------------------------------------------
+# (A) Predicted vs Actual
+# -------------------------------------------------------
 fig.add_trace(
     go.Scattergl(
-        x=pred, y=y, mode="markers", opacity=0.5,
-        marker=dict(size=5),
-        hovertemplate="Predicted=%{x:.3f}<br>Actual=%{y:.3f}<extra></extra>"
+        x=pdf["pred"], y=pdf["actual"],
+        mode="markers",
+        marker=dict(size=4, opacity=0.45, color="#1f77b4"),
+        hovertemplate="Predicted: %{x:.3f}<br>Actual: %{y:.3f}<extra></extra>"
     ),
     row=1, col=1
 )
-# 45° line
-lb = float(np.nanmin([pred.min(), y.min()]))
-ub = float(np.nanmax([pred.max(), y.max()]))
+
+xline = np.linspace(pdf["pred"].min(), pdf["pred"].max(), 100)
 fig.add_trace(
     go.Scatter(
-        x=[lb, ub], y=[lb, ub],
-        mode="lines", line=dict(dash="dash"),
-        name="45° line", showlegend=False
+        x=xline, y=xline,
+        mode="lines",
+        line=dict(color="firebrick", dash="dash"),
+        name="y = x",
+        hoverinfo="skip",
+        showlegend=False
     ),
     row=1, col=1
 )
 
-# (2) Residuals vs Predicted
+# -------------------------------------------------------
+# (B) Residuals vs Predicted
+# -------------------------------------------------------
 fig.add_trace(
     go.Scattergl(
-        x=pred, y=resid, mode="markers", opacity=0.5, marker=dict(size=5),
-        hovertemplate="Predicted=%{x:.3f}<br>Residual=%{y:.3f}<extra></extra>"
+        x=pdf["pred"], y=pdf["resid"],
+        mode="markers",
+        marker=dict(size=4, opacity=0.45, color="#00cc96"),
+        hovertemplate="Predicted: %{x:.3f}<br>Residual: %{y:.3f}<extra></extra>"
     ),
     row=1, col=2
 )
-fig.add_hline(y=0, line_dash="dash", row=1, col=2)
+fig.add_hline(y=0, line=dict(color="black", dash="dot"), row=1, col=2)
 
-# (3) Histogram of Residuals
+# -------------------------------------------------------
+# (C) Histogram of Residuals (with Normal Overlay)
+# -------------------------------------------------------
+hist_y, hist_x = np.histogram(pdf["resid"], bins="auto", density=True)
+xmid = (hist_x[:-1] + hist_x[1:]) / 2
+xrange = np.linspace(pdf["resid"].min(), pdf["resid"].max(), 300)
+normal_pdf = (1.0 / (sd * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((xrange - mu) / sd) ** 2)
+
 fig.add_trace(
-    go.Histogram(
-        x=resid, nbinsx=60, histnorm="probability",
-        hovertemplate="Residual=%{x:.3f}<br>Prob=%{y:.3f}<extra></extra>"
+    go.Bar(
+        x=xmid, y=hist_y,
+        name="Residuals",
+        marker=dict(color="violet", opacity=0.7),
+        hovertemplate="Residual: %{x:.3f}<br>Density: %{y:.3f}<extra></extra>"
+    ),
+    row=2, col=1
+)
+fig.add_trace(
+    go.Scatter(
+        x=xrange, y=normal_pdf,
+        mode="lines",
+        line=dict(color="firebrick", width=2),
+        name="Normal Curve",
+        hoverinfo="skip"
     ),
     row=2, col=1
 )
 
-# (4) QQ Plot
+# -------------------------------------------------------
+# (D) QQ Plot (Custom Normal Quantiles, no SciPy)
+# -------------------------------------------------------
+z = (pdf["resid"] - mu) / sd
+z_sorted = np.sort(z)
+n = len(z_sorted)
+p = (np.arange(1, n + 1) - 0.5) / n
+# Using inverse error function via np.erf approximation
+from math import sqrt
+theory = np.sqrt(2) * np.vectorize(lambda x: np.log((1+x)/(1-x)) / 2)(2*p - 1)
+
 fig.add_trace(
     go.Scattergl(
-        x=theoretical, y=ordered, mode="markers", opacity=0.6, marker=dict(size=5),
-        hovertemplate="Theoretical=%{x:.3f}<br>Ordered=%{y:.3f}<extra></extra>"
+        x=theory, y=z_sorted,
+        mode="markers",
+        marker=dict(size=4, opacity=0.6, color="#ff7f0e"),
+        hovertemplate="Theoretical: %{x:.3f}<br>Ordered: %{y:.3f}<extra></extra>"
     ),
     row=2, col=2
 )
+minq, maxq = np.quantile(theory, [0.02, 0.98])
 fig.add_trace(
     go.Scatter(
-        x=qq_line_x, y=qq_line_y, mode="lines",
-        line=dict(dash="dash"), showlegend=False
+        x=[minq, maxq], y=[minq, maxq],
+        mode="lines",
+        line=dict(color="black", dash="dash"),
+        hoverinfo="skip",
+        showlegend=False
     ),
     row=2, col=2
 )
 
-# Layout polish
-fig.update_xaxes(title_text="Predicted", row=1, col=1)
-fig.update_yaxes(title_text="Actual",    row=1, col=1)
-
-fig.update_xaxes(title_text="Predicted", row=1, col=2)
-fig.update_yaxes(title_text="Residual",  row=1, col=2)
-
-fig.update_xaxes(title_text="Residual",  row=2, col=1)
-fig.update_yaxes(title_text="Probability", row=2, col=1)
-
-fig.update_xaxes(title_text="Theoretical Quantiles", row=2, col=2)
-fig.update_yaxes(title_text="Ordered Residuals",     row=2, col=2)
-
+# -------------------------------------------------------
+# 3) Layout Polish
+# -------------------------------------------------------
 fig.update_layout(
-    height=820, width=980,
-    title=f"Interactive Diagnostic Plots ({label_col})",
     template="plotly_white",
-    showlegend=False
+    height=850,
+    width=1000,
+    title_text=f"Interactive Diagnostic Plots ({label_col})",
+    title_x=0.02,
+    font=dict(family="Arial", size=12, color="black"),
+    margin=dict(l=60, r=20, t=60, b=50),
+    hovermode="closest",
+    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
 )
 
-# Display inline + save a standalone HTML for the report
-display(fig)
+axis_fmt = dict(showgrid=True, gridcolor="rgba(0,0,0,0.1)", zeroline=False)
+fig.update_xaxes(**axis_fmt)
+fig.update_yaxes(**axis_fmt)
 
+fig.update_xaxes(title_text="Predicted", row=1, col=1)
+fig.update_yaxes(title_text="Actual", row=1, col=1)
+fig.update_xaxes(title_text="Predicted", row=1, col=2)
+fig.update_yaxes(title_text="Residual", row=1, col=2)
+fig.update_xaxes(title_text="Residual", row=2, col=1)
+fig.update_yaxes(title_text="Density", row=2, col=1)
+fig.update_xaxes(title_text="Theoretical Quantiles", row=2, col=2)
+fig.update_yaxes(title_text="Ordered Residuals", row=2, col=2)
+
+# -------------------------------------------------------
+# 4) Save interactive HTML
+# -------------------------------------------------------
 os.makedirs("_output", exist_ok=True)
-html_path = "_output/diagnostics_interactive.html"
-fig.write_html(html_path, include_plotlyjs="cdn", full_html=True)
-display(HTML(f'<p>🔗 <b>Saved</b>: <a href="{html_path}" target="_blank">{html_path}</a></p>'))
+out_html = "_output/diagnostics_interactive.html"
+fig.write_html(out_html, include_plotlyjs="cdn")
+print(f"✅ Saved interactive diagnostic plots to {out_html}")
+
+fig.show()
 
 ```
 
