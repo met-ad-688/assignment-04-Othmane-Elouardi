@@ -189,3 +189,215 @@ print(f"🧾 Testing set:  {test_count:,} rows ({test_count/total_count:.1%})")
 ```
 
 
+
+
+# Linear Regression
+
+Zero-variance features to restore full rank, train a Linear Regression model for
+prediction, and assemble a coefficient table with **SE, t, p, 95% CI** using LR/GLR or a
+bootstrap fallback when analytic standard errors are unavailable.
+
+```{python}
+# ======================================================
+# LINEAR REGRESSION with robust inference
+#   - zero-variance pruning (Summarizer.variance)
+#   - LR metrics on test set
+#   - LR -> GLR -> Bootstrap fallback for SE/t/p
+# ======================================================
+
+from pyspark.ml.regression import LinearRegression, GeneralizedLinearRegression
+from pyspark.ml.feature import VectorSlicer
+from pyspark.ml.evaluation import RegressionEvaluator
+from pyspark.ml.stat import Summarizer
+from pyspark.sql import functions as F
+import math
+import numpy as np
+
+# -----------------------------
+# Helpers
+# -----------------------------
+def extract_feature_names(df, features_col="features"):
+    """Read feature names from Vector metadata; fallback to generic names."""
+    meta = df.schema[features_col].metadata
+    try:
+        attrs = meta["ml_attr"]["attrs"]
+        names = []
+        for typ in ("binary", "numeric"):
+            if typ in attrs:
+                for a in attrs[typ]:
+                    names.append(a.get("name", f"f_{a.get('idx', len(names))}"))
+        return names
+    except Exception:
+        size = df.selectExpr(f"size({features_col}) as n").head().n
+        return [f"feature_{i}" for i in range(size)]
+
+def normal_pvalue_from_t(t):
+    """Two-sided p-value from z/t using normal approx."""
+    if t is None or t != t:
+        return float("nan")
+    return 2.0 * (1.0 - 0.5 * (1 + math.erf(abs(float(t))/math.sqrt(2))))
+
+def safe_ci(beta, se, z=1.96):
+    try:
+        if se is None or se != se:
+            return float("nan"), float("nan")
+        return float(beta - z*se), float(beta + z*se)
+    except Exception:
+        return float("nan"), float("nan")
+
+def build_table(coefs, ses, names, intercept=None, intercept_se=float("nan")):
+    # Align lengths
+    if len(names) != len(coefs):
+        if len(names) > len(coefs):
+            names = names[:len(coefs)]
+        else:
+            names += [f"feature_{i}" for i in range(len(names), len(coefs))]
+
+    rows = []
+    for n, b, se in zip(names, coefs, ses):
+        t = float("nan") if (se is None or se != se or se == 0.0) else float(b / se)
+        p = normal_pvalue_from_t(t)
+        lo, hi = safe_ci(b, se)
+        rows.append((n, float(b), float(se) if se == se else float("nan"), t, p, lo, hi))
+
+    coef_df = spark.createDataFrame(rows, ["feature", "coef", "se", "t", "p", "ci_lo", "ci_hi"])
+
+    # Intercept row (if provided)
+    if intercept is not None:
+        t_i = float("nan") if (intercept_se != intercept_se or intercept_se == 0.0) else float(intercept / intercept_se)
+        p_i = normal_pvalue_from_t(t_i)
+        lo_i, hi_i = safe_ci(intercept, intercept_se)
+        irow = spark.createDataFrame(
+            [("Intercept", float(intercept), float(intercept_se), t_i, p_i, lo_i, hi_i)],
+            ["feature", "coef", "se", "t", "p", "ci_lo", "ci_hi"]
+        )
+        coef_df = irow.unionByName(coef_df)
+
+    return coef_df
+
+# ---------------------------------------------
+# 1) Zero-variance pruning on TRAIN (robust)
+# ---------------------------------------------
+feat_names_full = extract_feature_names(train_df, "features")
+
+var_row = train_df.select(
+    Summarizer.variance(train_df["features"]).alias("var")
+).first()
+
+# Convert variance vector to 1-D numpy safely
+variances = var_row["var"].toArray() if hasattr(var_row["var"], "toArray") else np.array(var_row["var"]).ravel()
+
+keep_idx = [int(i) for i, v in enumerate(variances) if (v is not None) and not np.isnan(v) and v > 1e-12]
+if not keep_idx:  # safety fallback
+    keep_idx = list(range(len(variances)))
+
+removed = len(variances) - len(keep_idx)
+print(f"ℹ️ Removed {removed} zero-variance feature(s)." if removed > 0 else "ℹ️ No zero-variance features found.")
+
+slicer = VectorSlicer(inputCol="features", outputCol="features_nz", indices=keep_idx)
+train_nz = slicer.transform(train_df).drop("features").withColumnRenamed("features_nz", "features")
+test_nz  = slicer.transform(test_df ).drop("features").withColumnRenamed("features_nz", "features")
+
+feat_names = [feat_names_full[i] for i in keep_idx] if keep_idx else feat_names_full
+
+# ---------------------------------------------
+# 2) Fit Linear Regression and evaluate on TEST
+# ---------------------------------------------
+lr = LinearRegression(
+    featuresCol="features",
+    labelCol="SALARY",
+    predictionCol="prediction",
+    fitIntercept=True,
+    regParam=0.0,
+    elasticNetParam=0.0,
+    solver="normal",
+    maxIter=100
+)
+lr_model = lr.fit(train_nz)
+lr_sum   = lr_model.summary
+
+e_rmse = RegressionEvaluator(labelCol="SALARY", predictionCol="prediction", metricName="rmse")
+e_r2   = RegressionEvaluator(labelCol="SALARY", predictionCol="prediction", metricName="r2")
+e_mae  = RegressionEvaluator(labelCol="SALARY", predictionCol="prediction", metricName="mae")
+
+pred_test = lr_model.transform(test_nz).cache()
+rmse_test = e_rmse.evaluate(pred_test)
+r2_test   = e_r2.evaluate(pred_test)
+mae_test  = e_mae.evaluate(pred_test)
+
+print(f"✅ Test RMSE: {rmse_test:,.2f}")
+print(f"✅ Test MAE : {mae_test:,.2f}")
+print(f"✅ Test R²  : {r2_test:,.4f}")
+
+print("\n--- Training Metrics (reference) ---")
+print(f"RMSE: {lr_sum.rootMeanSquaredError:,.2f} | MAE: {lr_sum.meanAbsoluteError:,.2f} | R²: {lr_sum.r2:,.4f}")
+
+# ---------------------------------------------
+# 3) Inference: LR -> GLR -> Bootstrap fallback
+# ---------------------------------------------
+coef_df_out = None
+got_inference = False
+
+# (a) Try LR analytic inference
+try:
+    ses_lr   = list(lr_sum.coefficientStandardErrors)
+    coefs_lr = list(lr_model.coefficients.toArray())
+    coef_df_out = build_table(coefs_lr, ses_lr, feat_names, intercept=lr_model.intercept, intercept_se=float("nan"))
+    got_inference = True
+    print("ℹ️ Using LR analytic standard errors.")
+except Exception:
+    pass
+
+# (b) GLR fallback (Gaussian/identity)
+if not got_inference:
+    try:
+        glr = GeneralizedLinearRegression(
+            featuresCol="features", labelCol="SALARY", predictionCol="prediction_glr",
+            family="gaussian", link="identity", fitIntercept=True, regParam=0.0, maxIter=100
+        )
+        glr_model = glr.fit(train_nz)
+        glr_sum   = glr_model.summary
+
+        ses_all = list(glr_sum.coefficientStandardErrors)  # may include intercept as last element
+        coefs_g = list(glr_model.coefficients.toArray())
+
+        # Intercept SE often appears as the last element
+        intercept_se = float("nan")
+        if len(ses_all) == len(coefs_g) + 1:
+            intercept_se = float(ses_all[-1])
+            ses_g = ses_all[:-1]
+        else:
+            ses_g = ses_all
+
+        coef_df_out = build_table(coefs_g, ses_g, feat_names, intercept=glr_model.intercept, intercept_se=intercept_se)
+        got_inference = True
+        print("ℹ️ Using GLR analytic standard errors.")
+    except Exception:
+        pass
+
+# (c) Bootstrap fallback (lightweight) if analytic SEs are unavailable
+if not got_inference:
+    print("⚠️ Analytic SE unavailable — running bootstrap (B=30).")
+    B = 30
+    coef_mat = []
+    for b in range(B):
+        samp = train_nz.sample(withReplacement=True, fraction=1.0, seed=2025 + b)
+        m = lr.fit(samp)
+        coef_mat.append(m.coefficients.toArray())
+    coef_mat = np.array(coef_mat)  # [B, p]
+    coefs = lr_model.coefficients.toArray()
+    ses   = np.std(coef_mat, axis=0, ddof=1)
+    coef_df_out = build_table(list(coefs), list(ses), feat_names, intercept=lr_model.intercept, intercept_se=float("nan"))
+    print("ℹ️ Bootstrap SE computed.")
+
+# Order and display
+coef_df_out = coef_df_out.withColumn("abs_t", F.abs(F.col("t"))).orderBy(F.desc_nulls_last("abs_t"))
+
+print("\n--- Top 25 coefficients by |t| ---")
+coef_df_out.select("feature", "coef", "se", "t", "p", "ci_lo", "ci_hi").show(25, truncate=False)
+
+# save the full table
+coef_df_out.coalesce(1).write.mode("overwrite").option("header", True).csv("output/linear_coef_table")
+
+
+```
