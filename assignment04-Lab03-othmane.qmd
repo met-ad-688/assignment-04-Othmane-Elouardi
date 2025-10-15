@@ -1022,3 +1022,131 @@ fig.show()
 print(f"✅ Saved interactive evaluation dashboard to {out_html}")
 
 ```
+
+
+
+# Model Evaluation Plot
+
+```{python}
+# --- Predicted vs Actual (with RMSE, R², AIC, BIC) ---
+
+from pyspark.sql import functions as F
+from pyspark.sql.functions import col
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import os
+
+# -------- 0) Preconditions --------
+if "model" not in globals():
+    raise RuntimeError("No trained model found. Train your GLR first and keep `model` in scope.")
+
+summary = model.summary
+
+# Pick a features DF that was used to fit/evaluate
+df_source = None
+for cand in ["df_fe_used", "df_fe"]:
+    if cand in globals():
+        df_source = globals()[cand]
+        break
+if df_source is None:
+    raise RuntimeError("Couldn't find a features DataFrame (`df_fe` or `df_fe_used`).")
+
+# Label detection
+label_col = "label_log" if "label_log" in df_source.columns else ("label" if "label" in df_source.columns else None)
+if label_col is None:
+    raise RuntimeError("Expected `label_log` or `label` in the features dataframe.")
+
+is_log = (label_col == "label_log")
+
+# -------- 1) Predict & clean --------
+pred_df = (model.transform(df_source)
+           .select(col(label_col).alias("y_true"), col("prediction").alias("y_pred"))
+           .where(col("y_true").isNotNull() & ~F.isnan("y_true"))
+           .where(col("y_pred").isNotNull() & ~F.isnan("y_pred")))
+
+# back-transform if using log labels
+if is_log:
+    pred_df = pred_df.withColumn("y_true_lin", F.expm1("y_true")).withColumn("y_pred_lin", F.expm1("y_pred"))
+    y_true_col, y_pred_col = "y_true_lin", "y_pred_lin"
+else:
+    y_true_col, y_pred_col = "y_true", "y_pred"
+
+n = pred_df.count()
+if n == 0:
+    raise RuntimeError("No rows after cleaning predictions; cannot evaluate.")
+
+# Optional clipping for cleaner visuals (not used for metrics)
+lo = pred_df.approxQuantile(y_true_col, [0.01], 1e-3)[0] or 0.0
+hi = pred_df.approxQuantile(y_true_col, [0.99], 1e-3)[0] or 1.0
+pred_df_vis = pred_df.where((col(y_true_col) >= lo) & (col(y_true_col) <= hi))
+
+# -------- 2) Metrics --------
+# RMSE on display scale
+RMSE = float(pred_df.select(
+    F.sqrt(F.mean(F.pow(col(y_pred_col) - col(y_true_col), 2))).alias("rmse")
+).first().rmse)
+
+# R² on display scale (two-pass: compute mu, then SST with constant mu)
+mu = float(pred_df.select(F.avg(col(y_true_col)).alias("mu")).first().mu)
+SSE = float(pred_df.select(F.sum(F.pow(col(y_pred_col) - col(y_true_col), 2)).alias("sse")).first().sse)
+SST = float(pred_df.select(F.sum(F.pow(col(y_true_col) - F.lit(mu), 2)).alias("sst")).first().sst)
+R2 = 1.0 - (SSE / SST) if SST > 0 else float("nan")
+
+# AIC from GLR summary; BIC via gaussian RSS proxy
+AIC = float(summary.aic)
+rss_like = float(summary.deviance)  # GLR gaussian deviance ~ RSS
+k_params = int(n - summary.residualDegreeOfFreedom)  # params incl. intercept
+BIC = n * np.log(max(rss_like / max(n, 1), 1e-12)) + k_params * np.log(max(n, 1))
+
+print(f"Model on {'log-salary' if is_log else 'raw salary'}")
+print(f"Rows used: {n:,}")
+print(f"RMSE: {RMSE:,.2f} | R²: {R2:.4f} | AIC: {AIC:,.2f} | BIC: {BIC:,.2f}")
+
+# -------- 3) Matplotlib plot --------
+pdf = pred_df_vis.select(col(y_true_col).alias("actual"), col(y_pred_col).alias("pred")).toPandas()
+
+plt.figure(figsize=(7.5, 6.0), dpi=140)
+plt.scatter(pdf["actual"], pdf["pred"], s=14, alpha=0.45, edgecolor="none")
+
+xy_min = float(np.nanmin([pdf["actual"].min(), pdf["pred"].min()]))
+xy_max = float(np.nanmax([pdf["actual"].max(), pdf["pred"].max()]))
+plt.plot([xy_min, xy_max], [xy_min, xy_max], "r-", lw=2, label="Ideal Fit (y = x)")
+
+title_prefix = "Predicted vs Actual Salary (GLR Model)"
+subtitle = f"RMSE = {RMSE:,.2f} | R² = {R2:.4f} | AIC = {AIC:,.2f} | BIC = {BIC:,.2f}"
+plt.title(f"{title_prefix}\n{subtitle}", fontsize=11.5)
+plt.xlabel("Actual Salary (USD)" + (" (back-transformed)" if is_log else ""))
+plt.ylabel("Predicted Salary (USD)" + (" (back-transformed)" if is_log else ""))
+plt.legend(loc="upper left", frameon=False)
+plt.grid(alpha=0.25)
+
+os.makedirs("_output", exist_ok=True)
+png_path = "_output/pred_vs_actual.png"
+plt.tight_layout()
+plt.savefig(png_path, bbox_inches="tight")
+plt.show()
+print(f"Saved static figure to {png_path}")
+
+# -------- 4) Optional Plotly interactive --------
+try:
+    import plotly.graph_objects as go
+    fig = go.Figure()
+    fig.add_scattergl(x=pdf["actual"], y=pdf["pred"], mode="markers",
+                      marker=dict(size=4, opacity=0.5), name="Pred vs Actual")
+    fig.add_scatter(x=[xy_min, xy_max], y=[xy_min, xy_max],
+                    mode="lines", line=dict(color="red"), name="Ideal Fit (y=x)")
+    fig.update_layout(
+        title=f"{title_prefix}<br><sup>{subtitle}</sup>",
+        xaxis_title="Actual Salary (USD)" + (" (back-transformed)" if is_log else ""),
+        yaxis_title="Predicted Salary (USD)" + (" (back-transformed)" if is_log else ""),
+        width=750, height=560, template="simple_white"
+    )
+    html_path = "_output/pred_vs_actual_interactive.html"
+    fig.write_html(html_path, include_plotlyjs="cdn")
+    print(f"Saved interactive figure to {html_path}")
+except Exception as e:
+    print(f"(Plotly not available or failed: {e})")
+
+
+```
