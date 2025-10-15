@@ -942,3 +942,83 @@ fig.show()
 ```
 
 
+# Evaluation
+
+```{python}
+# === Model Evaluation (Interactive Dashboard) ===
+from pyspark.ml.evaluation import RegressionEvaluator
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import os
+
+print("Evaluating model performance...")
+
+# --- 1) Predictions ---
+pred = model.transform(df_fe).select("label_log", "prediction").dropna()
+
+# --- 2) Evaluation metrics ---
+evaluator_r2 = RegressionEvaluator(labelCol="label_log", predictionCol="prediction", metricName="r2")
+evaluator_rmse = RegressionEvaluator(labelCol="label_log", predictionCol="prediction", metricName="rmse")
+
+r2 = evaluator_r2.evaluate(pred)
+rmse = evaluator_rmse.evaluate(pred)
+
+print(f"R² (Coefficient of Determination): {r2:.4f}")
+print(f"RMSE (Root Mean Squared Error): {rmse:.4f}")
+
+# --- 3) Interactive dashboard ---
+fig = make_subplots(rows=1, cols=2, specs=[[{"type": "indicator"}, {"type": "indicator"}]],
+                    subplot_titles=("R² Score", "RMSE"),
+                    horizontal_spacing=0.2)
+
+# R² Gauge
+fig.add_trace(go.Indicator(
+    mode="gauge+number+delta",
+    value=r2,
+    number={"font": {"size": 50}},
+    delta={"reference": 1.0, "increasing": {"color": "green"}, "decreasing": {"color": "red"}},
+    title={"text": "R² Score", "font": {"size": 20}},
+    gauge={
+        "axis": {"range": [0, 1]},
+        "bar": {"color": "#2E86DE"},
+        "steps": [
+            {"range": [0, 0.5], "color": "#f8d7da"},
+            {"range": [0.5, 0.8], "color": "#fff3cd"},
+            {"range": [0.8, 1], "color": "#d4edda"},
+        ],
+    }
+), row=1, col=1)
+
+# RMSE Gauge
+fig.add_trace(go.Indicator(
+    mode="gauge+number",
+    value=rmse,
+    number={"font": {"size": 50}},
+    title={"text": "RMSE", "font": {"size": 20}},
+    gauge={
+        "axis": {"range": [0, max(1, rmse * 2)]},
+        "bar": {"color": "#1e90ff"},
+        "steps": [
+            {"range": [0, rmse], "color": "#cce5ff"},
+            {"range": [rmse, rmse * 2], "color": "#f8f9fa"},
+        ],
+    }
+), row=1, col=2)
+
+fig.update_layout(
+    title_text=f"Model Evaluation Metrics ({model.getLabelCol()})",
+    title_font_size=22,
+    template="plotly_white",
+    height=500,
+    width=900
+)
+
+# --- 4) Save interactive HTML ---
+os.makedirs("_output", exist_ok=True)
+out_html = "_output/model_evaluation_metrics.html"
+fig.write_html(out_html, include_plotlyjs="cdn")
+
+fig.show()
+print(f"✅ Saved interactive evaluation dashboard to {out_html}")
+
+```
