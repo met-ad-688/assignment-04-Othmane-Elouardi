@@ -81,3 +81,85 @@ df.printSchema()
 df.show(5, truncate=False)
 ```
 
+
+
+# Feature Engineering
+
+Feature engineering is a crucial step in preparing the dataset for machine learning.  
+This section cleans the data, encodes categorical variables, and constructs feature vectors for model training.
+
+```{python}
+# ======================================================
+# FEATURE ENGINEERING
+# ======================================================
+
+from pyspark.sql import functions as F
+from pyspark.ml.feature import StringIndexer, OneHotEncoder, VectorAssembler
+
+# ------------------------------------------------------
+# 1. Drop rows with missing target or key features
+# ------------------------------------------------------
+df_clean = df.dropna(subset=[
+    "SALARY", "MIN_YEARS_EXPERIENCE", "MAX_YEARS_EXPERIENCE",
+    "EMPLOYMENT_TYPE_NAME", "STATE_NAME", "MIN_EDULEVELS_NAME"
+])
+
+print(f"✅ Rows after dropping nulls: {df_clean.count():,}")
+
+# ------------------------------------------------------
+# 2. Create new feature: MIN_YEARS_EXPERIENCE_SQ
+# ------------------------------------------------------
+df_clean = df_clean.withColumn(
+    "MIN_YEARS_EXPERIENCE_SQ",
+    F.pow(F.col("MIN_YEARS_EXPERIENCE"), 2)
+)
+
+# ------------------------------------------------------
+# 3. Encode categorical variables
+# ------------------------------------------------------
+cat_cols = ["EMPLOYMENT_TYPE_NAME", "STATE_NAME", "MIN_EDULEVELS_NAME"]
+
+indexers = [
+    StringIndexer(inputCol=c, outputCol=f"{c}_IDX", handleInvalid="keep")
+    for c in cat_cols
+]
+
+encoders = [
+    OneHotEncoder(inputCol=f"{c}_IDX", outputCol=f"{c}_OHE")
+    for c in cat_cols
+]
+
+# Apply indexers sequentially
+for idx in indexers:
+    df_clean = idx.fit(df_clean).transform(df_clean)
+
+# Apply one-hot encoders sequentially
+for enc in encoders:
+    df_clean = enc.fit(df_clean).transform(df_clean)
+
+# ------------------------------------------------------
+# 4. Assemble final features
+# ------------------------------------------------------
+numeric_cols = [
+    "MIN_YEARS_EXPERIENCE", 
+    "MAX_YEARS_EXPERIENCE", 
+    "MIN_YEARS_EXPERIENCE_SQ"
+]
+
+ohe_cols = [f"{c}_OHE" for c in cat_cols]
+
+assembler = VectorAssembler(
+    inputCols=numeric_cols + ohe_cols,
+    outputCol="features"
+)
+
+df_fe = assembler.transform(df_clean)
+
+# ------------------------------------------------------
+# 5. Show sample of processed data
+# ------------------------------------------------------
+df_fe.select(
+    "SALARY", "MIN_YEARS_EXPERIENCE", "STATE_NAME", "features"
+).show(5, truncate=False)
+
+```
