@@ -427,7 +427,7 @@ coef_df_out.coalesce(1).write.mode("overwrite").option("header", True).csv("outp
 
 
 
-# Generalized Linear Regression Summary
+## Generalized Linear Regression Summary
 
 ```{python}
 # ======================================================
@@ -570,4 +570,124 @@ coef_df_glr.coalesce(1).write.mode("overwrite").option("header", True).csv("outp
 
 ```
 
+
+### Interpretation
+
+The Generalized Linear Regression model produced an AIC of approximately 71,000, and the dispersion parameter aligns well with the salary scale. According to bootstrap-based standard errors, employment type and education level have the most significant impact on salary. Specifically, full-time positions and advanced degrees, such as Master’s and Ph.D., considerably increase the predicted salary, while part-time roles and lower education levels lead to a decrease. Geographic factors also play an important role, highlighting the variations in labor markets at the state level. Overall, the model effectively identifies and interprets key relationships while ensuring numerical stability through bootstrapped inference.
+
+
+
+
+
+# Random Forest Regressor
+
+```{python}
+# ======================================================
+# RANDOM FOREST REGRESSOR 
+#   - trains on train_nz, evaluates on test_nz
+#   - robust feature-name handling for importances
+#   - caches data to avoid recomputation
+# ======================================================
+
+from pyspark.ml.regression import RandomForestRegressor
+from pyspark.ml.evaluation import RegressionEvaluator
+from pyspark.sql import functions as F
+
+# ----------- Hyperparameters (edit here) -----------
+NUM_TREES = 200        # 100–500 per instructions
+MAX_DEPTH = 6          # 4–10 per instructions
+FEATURE_SUBSET = "sqrt"
+SUBSAMPLE = 0.8
+MAX_BINS = 64
+SEED = 42
+
+# ----------- Safety: ensure train/test exist, cache once -----------
+try:
+    train_nz  # noqa: F401
+    test_nz   # noqa: F401
+except NameError:
+    raise RuntimeError("train_nz/test_nz not found. Run the train/test split + feature steps first.")
+
+# Cache & materialize to prevent long DAG recomputes
+train_nz = train_nz.repartition(4).cache()
+test_nz  = test_nz.repartition(4).cache()
+_ = train_nz.count(); _ = test_nz.count()
+
+# ----------- Helper: robust feature names -----------
+def extract_feature_names(df, features_col="features"):
+    meta = df.schema[features_col].metadata
+    try:
+        attrs = meta["ml_attr"]["attrs"]
+        names = []
+        for typ in ("binary", "numeric"):
+            if typ in attrs:
+                for a in attrs[typ]:
+                    names.append(a.get("name", f"f_{a.get('idx', len(names))}"))
+        return names
+    except Exception:
+        size = df.selectExpr(f"size({features_col}) as n").first().n
+        return [f"feature_{i}" for i in range(size)]
+
+feature_names = extract_feature_names(train_nz, "features")
+
+# ----------- 1) Train RF -----------
+rf = RandomForestRegressor(
+    featuresCol="features",
+    labelCol="SALARY",
+    predictionCol="prediction_rf",
+    numTrees=NUM_TREES,
+    maxDepth=MAX_DEPTH,
+    featureSubsetStrategy=FEATURE_SUBSET,
+    subsamplingRate=SUBSAMPLE,
+    minInstancesPerNode=2,
+    maxBins=MAX_BINS,
+    seed=SEED
+)
+rf_model = rf.fit(train_nz)
+
+# ----------- 2) Evaluate on TEST -----------
+pred_rf = rf_model.transform(test_nz).cache()
+_ = pred_rf.count()  # materialize once
+
+e_rmse = RegressionEvaluator(labelCol="SALARY", predictionCol="prediction_rf", metricName="rmse")
+e_mae  = RegressionEvaluator(labelCol="SALARY", predictionCol="prediction_rf", metricName="mae")
+e_r2   = RegressionEvaluator(labelCol="SALARY", predictionCol="prediction_rf", metricName="r2")
+
+rmse_rf = e_rmse.evaluate(pred_rf)
+mae_rf  = e_mae.evaluate(pred_rf)
+r2_rf   = e_r2.evaluate(pred_rf)
+
+print(f"🌲 RF Test RMSE: {rmse_rf:,.2f}")
+print(f"🌲 RF Test MAE : {mae_rf:,.2f}")
+print(f"🌲 RF Test R²  : {r2_rf:,.4f}")
+
+# ----------- 3) Feature Importances (robust) -----------
+imp_vec = rf_model.featureImportances  # SparseVector
+# Convert to dense Python list aligned to the actual vector length
+try:
+    vec_len = pred_rf.selectExpr("size(features) as n").first().n
+except Exception:
+    vec_len = len(feature_names)
+
+importances = [0.0] * vec_len
+for idx, val in zip(imp_vec.indices, imp_vec.values):
+    if idx < vec_len:
+        importances[int(idx)] = float(val)
+
+# Align names to the vector length
+if len(feature_names) != vec_len:
+    if len(feature_names) > vec_len:
+        feature_names = feature_names[:vec_len]
+    else:
+        feature_names += [f"feature_{i}" for i in range(len(feature_names), vec_len)]
+
+imp_rows = list(zip(feature_names, importances))
+imp_df = spark.createDataFrame(imp_rows, ["feature", "rf_importance"]).orderBy(F.desc("rf_importance"))
+
+print("\n--- Top 20 Random Forest feature importances ---")
+imp_df.show(20, truncate=False)
+
+# Optional: save importances
+# imp_df.coalesce(1).write.mode("overwrite").option("header", True).csv("output/rf_feature_importances")
+```
 
