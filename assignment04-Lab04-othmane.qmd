@@ -199,9 +199,9 @@ bootstrap fallback when analytic standard errors are unavailable.
 
 ```{python}
 # ======================================================
-# LINEAR REGRESSION with robust inference
+# LINEAR REGRESSION with robust & fast inference
 #   - zero-variance pruning (Summarizer.variance)
-#   - LR metrics on test set
+#   - LR (L-BFGS + tiny ridge) metrics on test set
 #   - LR -> GLR -> Bootstrap fallback for SE/t/p
 # ======================================================
 
@@ -210,8 +210,16 @@ from pyspark.ml.feature import VectorSlicer
 from pyspark.ml.evaluation import RegressionEvaluator
 from pyspark.ml.stat import Summarizer
 from pyspark.sql import functions as F
-import math
-import numpy as np
+import math, numpy as np
+
+# ---- Speed / stability toggles ----
+DO_BOOTSTRAP = False       # turn ON only if you really need SEs; this saves lots of time
+B = 8                      # bootstrap iterations if enabled
+BOOTSTRAP_FRACTION = 0.85  # subsample per bootstrap to speed up
+RIDGE = 1e-4               # tiny L2 to avoid singularities
+MAXITER_LR = 200
+MAXITER_GLR = 120
+TOL = 1e-5
 
 # -----------------------------
 # Helpers
@@ -300,18 +308,25 @@ test_nz  = slicer.transform(test_df ).drop("features").withColumnRenamed("featur
 
 feat_names = [feat_names_full[i] for i in keep_idx] if keep_idx else feat_names_full
 
+# Cache & materialize once to avoid recomputation across fits
+train_nz = train_nz.repartition(4).cache()
+test_nz  = test_nz.repartition(4).cache()
+_ = train_nz.count(); _ = test_nz.count()
+
 # ---------------------------------------------
-# 2) Fit Linear Regression and evaluate on TEST
+# 2) Fit Linear Regression (fast/stable) + TEST metrics
 # ---------------------------------------------
 lr = LinearRegression(
     featuresCol="features",
     labelCol="SALARY",
     predictionCol="prediction",
     fitIntercept=True,
-    regParam=0.0,
+    regParam=RIDGE,             # tiny L2 prevents singularities
     elasticNetParam=0.0,
-    solver="normal",
-    maxIter=100
+    solver="l-bfgs",            # faster & avoids Cholesky path
+    maxIter=MAXITER_LR,
+    tol=TOL,
+    standardization=True
 )
 lr_model = lr.fit(train_nz)
 lr_sum   = lr_model.summary
@@ -338,7 +353,7 @@ print(f"RMSE: {lr_sum.rootMeanSquaredError:,.2f} | MAE: {lr_sum.meanAbsoluteErro
 coef_df_out = None
 got_inference = False
 
-# (a) Try LR analytic inference
+# (a) Try LR analytic inference (may be unavailable)
 try:
     ses_lr   = list(lr_sum.coefficientStandardErrors)
     coefs_lr = list(lr_model.coefficients.toArray())
@@ -348,12 +363,16 @@ try:
 except Exception:
     pass
 
-# (b) GLR fallback (Gaussian/identity)
+# (b) GLR fallback (Gaussian/identity) with tiny ridge and L-BFGS
 if not got_inference:
     try:
         glr = GeneralizedLinearRegression(
             featuresCol="features", labelCol="SALARY", predictionCol="prediction_glr",
-            family="gaussian", link="identity", fitIntercept=True, regParam=0.0, maxIter=100
+            family="gaussian", link="identity",
+            fitIntercept=True,
+            regParam=RIDGE,
+            maxIter=MAXITER_GLR,
+            tol=TOL
         )
         glr_model = glr.fit(train_nz)
         glr_sum   = glr_model.summary
@@ -377,18 +396,23 @@ if not got_inference:
 
 # (c) Bootstrap fallback (lightweight) if analytic SEs are unavailable
 if not got_inference:
-    print("⚠️ Analytic SE unavailable — running bootstrap (B=30).")
-    B = 30
-    coef_mat = []
-    for b in range(B):
-        samp = train_nz.sample(withReplacement=True, fraction=1.0, seed=2025 + b)
-        m = lr.fit(samp)
-        coef_mat.append(m.coefficients.toArray())
-    coef_mat = np.array(coef_mat)  # [B, p]
-    coefs = lr_model.coefficients.toArray()
-    ses   = np.std(coef_mat, axis=0, ddof=1)
-    coef_df_out = build_table(list(coefs), list(ses), feat_names, intercept=lr_model.intercept, intercept_se=float("nan"))
-    print("ℹ️ Bootstrap SE computed.")
+    if DO_BOOTSTRAP:
+        print(f"⚠️ Analytic SE unavailable — running bootstrap (B={B}).")
+        coef_mat = []
+        for b in range(B):
+            samp = train_nz.sample(withReplacement=True, fraction=BOOTSTRAP_FRACTION, seed=2025 + b)
+            m = lr.fit(samp)
+            coef_mat.append(m.coefficients.toArray())
+        coef_mat = np.array(coef_mat)  # [B, p]
+        coefs = lr_model.coefficients.toArray()
+        ses   = np.std(coef_mat, axis=0, ddof=1)
+        coef_df_out = build_table(list(coefs), list(ses), feat_names, intercept=lr_model.intercept, intercept_se=float("nan"))
+        print("ℹ️ Bootstrap SE computed.")
+    else:
+        print("ℹ️ Skipping bootstrap; reporting coefficients without SE.")
+        coefs = lr_model.coefficients.toArray()
+        ses   = [float("nan")] * len(coefs)
+        coef_df_out = build_table(list(coefs), ses, feat_names, intercept=lr_model.intercept, intercept_se=float("nan"))
 
 # Order and display
 coef_df_out = coef_df_out.withColumn("abs_t", F.abs(F.col("t"))).orderBy(F.desc_nulls_last("abs_t"))
@@ -399,5 +423,151 @@ coef_df_out.select("feature", "coef", "se", "t", "p", "ci_lo", "ci_hi").show(25,
 # save the full table
 coef_df_out.coalesce(1).write.mode("overwrite").option("header", True).csv("output/linear_coef_table")
 
+```
+
+
+
+# Generalized Linear Regression Summary
+
+```{python}
+# ======================================================
+# GLR SUMMARY (defensive, with bootstrap fallback)
+# ======================================================
+
+from pyspark.ml.regression import GeneralizedLinearRegression
+from pyspark.sql import functions as F
+import math, numpy as np
+
+# ---------- safety: cache the pruned datasets ----------
+try:
+    train_nz = train_nz.cache(); test_nz = test_nz.cache()
+    _ = train_nz.count(); _ = test_nz.count()
+except NameError:
+    # If you haven't run the train/test split + pruning cells yet
+    raise RuntimeError("train_nz/test_nz not found. Run the Train/Test Split cell first.")
+
+# ---------- settings (tweakable) ----------
+DO_BOOTSTRAP = True
+B = 8                    # keep modest for speed
+BOOTSTRAP_FRACTION = 0.85
+Z_95 = 1.96
+
+# ---------- helpers ----------
+def extract_feature_names(df, features_col="features"):
+    meta = df.schema[features_col].metadata
+    try:
+        attrs = meta["ml_attr"]["attrs"]
+        names = []
+        for typ in ("binary", "numeric"):
+            if typ in attrs:
+                for a in attrs[typ]:
+                    names.append(a.get("name", f"f_{a.get('idx', len(names))}"))
+        return names
+    except Exception:
+        size = df.selectExpr(f"size({features_col}) as n").first().n
+        return [f"feature_{i}" for i in range(size)]
+
+def normal_pvalue_from_t(t):
+    if t is None or (isinstance(t, float) and math.isnan(t)):
+        return float("nan")
+    z = abs(float(t))
+    return 2.0 * (1.0 - 0.5 * (1 + math.erf(z / math.sqrt(2))))
+
+def build_table(coefs, ses, names, intercept=None, intercept_se=float("nan")):
+    # align lengths
+    if len(names) != len(coefs):
+        if len(names) > len(coefs):
+            names = names[:len(coefs)]
+        else:
+            names += [f"feature_{i}" for i in range(len(names), len(coefs))]
+
+    rows = []
+    for n, b, se in zip(names, coefs, ses):
+        if se is None or (isinstance(se, float) and math.isnan(se)) or se == 0.0:
+            t = float("nan"); p = float("nan"); lo = float("nan"); hi = float("nan")
+        else:
+            t = float(b) / float(se)
+            p = normal_pvalue_from_t(t)
+            lo = float(b) - Z_95*float(se)
+            hi = float(b) + Z_95*float(se)
+        rows.append((n, float(b), float(se) if se == se else float("nan"), t, p, lo, hi))
+
+    coef_df = spark.createDataFrame(rows, ["feature", "coef", "se", "t", "p", "ci_lo", "ci_hi"])
+
+    # intercept row (optional)
+    if intercept is not None:
+        if (intercept_se is None) or (isinstance(intercept_se, float) and math.isnan(intercept_se)) or intercept_se == 0.0:
+            t_i = float("nan"); p_i = float("nan"); lo_i = float("nan"); hi_i = float("nan")
+        else:
+            t_i = float(intercept) / float(intercept_se)
+            p_i = normal_pvalue_from_t(t_i)
+            lo_i = float(intercept) - Z_95*float(intercept_se)
+            hi_i = float(intercept) + Z_95*float(intercept_se)
+        irow = spark.createDataFrame(
+            [("Intercept", float(intercept), float(intercept_se) if intercept_se==intercept_se else float("nan"),
+              t_i, p_i, lo_i, hi_i)],
+            ["feature", "coef", "se", "t", "p", "ci_lo", "ci_hi"]
+        )
+        coef_df = irow.unionByName(coef_df)
+
+    return coef_df
+
+# ---------- 1) Fit GLR and print model metrics (all getattr-guarded) ----------
+glr = GeneralizedLinearRegression(
+    featuresCol="features", labelCol="SALARY", predictionCol="prediction_glr",
+    family="gaussian", link="identity", fitIntercept=True, regParam=0.0, maxIter=100
+)
+glr_model = glr.fit(train_nz)
+glr_sum   = glr_model.summary
+
+print("✅ GLR Model Summary")
+print(f"AIC: {getattr(glr_sum, 'aic', float('nan')):.2f}")
+print(f"Deviance: {getattr(glr_sum, 'deviance', float('nan')):.2f}")
+print(f"Dispersion: {getattr(glr_sum, 'dispersion', float('nan')):.4f}")
+print(f"Null Deviance: {getattr(glr_sum, 'nullDeviance', float('nan')):.2f}")
+print(f"Residual DF: {getattr(glr_sum, 'residualDegreeOfFreedom', float('nan'))}")
+
+feat_names = extract_feature_names(train_nz, "features")
+coefs = list(glr_model.coefficients.toArray())
+
+# ---------- 2) Try analytic SE; else bootstrap; else NA ----------
+coef_df_glr = None
+intercept_se = float("nan")
+
+try:
+    ses_all = list(glr_sum.coefficientStandardErrors)  # may include intercept as last element
+    if len(ses_all) == len(coefs) + 1:
+        intercept_se = float(ses_all[-1]); ses = ses_all[:-1]
+    else:
+        ses = ses_all
+    coef_df_glr = build_table(coefs, ses, feat_names, intercept=glr_model.intercept, intercept_se=intercept_se)
+    print("ℹ️ Using GLR analytic standard errors.")
+except Exception:
+    print("⚠️ GLR analytic SE unavailable.")
+    if DO_BOOTSTRAP:
+        print(f"⚠️ Running GLR bootstrap (B={B}).")
+        coef_mat = []
+        for b in range(B):
+            samp = train_nz.sample(withReplacement=True, fraction=BOOTSTRAP_FRACTION, seed=4100 + b)
+            m = glr.fit(samp)
+            coef_mat.append(m.coefficients.toArray())
+        coef_mat = np.array(coef_mat)
+        ses_bs   = np.std(coef_mat, axis=0, ddof=1)
+        coef_df_glr = build_table(coefs, list(ses_bs), feat_names, intercept=glr_model.intercept, intercept_se=float("nan"))
+        print("ℹ️ Bootstrap SE computed.")
+    else:
+        # As a last resort, output coefficients with NA SE (still a valid table)
+        coef_df_glr = build_table(coefs, [float("nan")]*len(coefs), feat_names, intercept=glr_model.intercept)
+
+# ---------- 3) Order and show ----------
+coef_df_glr = coef_df_glr.withColumn("abs_t", F.abs(F.col("t"))).orderBy(F.desc_nulls_last("abs_t"))
+print("\n--- Top 25 GLR coefficients by |t| ---")
+coef_df_glr.select("feature", "coef", "se", "t", "p", "ci_lo", "ci_hi").show(25, truncate=False)
+
+# Optional: save
+coef_df_glr.coalesce(1).write.mode("overwrite").option("header", True).csv("output/glr_coef_table")
+
 
 ```
+
+
