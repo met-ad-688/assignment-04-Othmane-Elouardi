@@ -1,0 +1,2 @@
+n (observations),k (parameters),dispersion,deviance,log_likelihood,AIC (GLR summary),BIC (k*log(n) - 2*LL),BIC (expanded)
+3060,64,808320220.3732226,2421727380238.175,-35690.96925259203,71511.25974323756,71895.61339766064,71895.61339766064

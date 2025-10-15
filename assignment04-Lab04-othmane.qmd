@@ -1089,3 +1089,97 @@ plt.close()
 print("✅ Saved static grid to: _output/model_comparison_grid.png")
 
 ```
+
+## Calculating Log-Likelihood and BIC for PySpark Models
+
+
+```{python}
+#| label: glr-loglik-bic
+#| echo: false
+#| warning: true     # override global suppression so you can see issues
+#| error: true       # if something fails, you'll see it in the page
+
+import math, os
+import pandas as pd
+
+def _safe_int(x, default=None):
+    try:
+        return int(x)
+    except Exception:
+        return default
+
+try:
+    # 1) Make sure GLR is available
+    glr_model
+    glr_sum = glr_model.summary
+
+    # 2) Pull values (robust to Spark version diffs)
+    deviance   = float(getattr(glr_sum, "deviance", float("nan")))
+    dispersion = float(getattr(glr_sum, "dispersion", float("nan")))
+
+    # n: try direct attrs; else reconstruct as dof + params
+    n_obs = None
+    for attr in ("numInstances", "n", "numObservations"):
+        if hasattr(glr_sum, attr):
+            n_obs = _safe_int(getattr(glr_sum, attr))
+            if n_obs is not None:
+                break
+    if n_obs is None:
+        dof = _safe_int(getattr(glr_sum, "degreesOfFreedom", 0), 0)
+        k_from_sum = _safe_int(getattr(glr_sum, "numParameters",
+                                       glr_model.coefficients.size + 1),
+                               glr_model.coefficients.size + 1)
+        n_obs = dof + k_from_sum
+
+    # k: parameters = #coefs + intercept
+    k_params = _safe_int(getattr(glr_sum, "numParameters",
+                                 glr_model.coefficients.size + 1),
+                         glr_model.coefficients.size + 1)
+
+    # 3) Log-Likelihood per assignment
+    log_likelihood = -0.5 * (
+        n_obs * math.log(2 * math.pi)
+        + n_obs * math.log(dispersion)
+        + (deviance / dispersion)
+    )
+
+    # 4) BIC per assignment (two equivalent forms)
+    bic_loglik   = k_params * math.log(n_obs) - 2.0 * log_likelihood
+    bic_expanded = k_params * math.log(n_obs) + (
+        n_obs * math.log(2 * math.pi)
+        + n_obs * math.log(dispersion)
+        + (deviance / dispersion)
+    )
+
+    aic_glr = float(getattr(glr_sum, "aic", float("nan")))
+
+    # 5) Show as a small table (always renders on the page)
+    out = pd.DataFrame([{
+        "n (observations)": n_obs,
+        "k (parameters)": k_params,
+        "dispersion": dispersion,
+        "deviance": deviance,
+        "log_likelihood": log_likelihood,
+        "AIC (GLR summary)": aic_glr,
+        "BIC (k*log(n) - 2*LL)": bic_loglik,
+        "BIC (expanded)": bic_expanded,
+    }])
+    display(out)
+
+    # 6) Persist so you have an artifact in _output/
+    os.makedirs("_output", exist_ok=True)
+    out.to_csv("_output/glr_loglik_bic.csv", index=False)
+    print("💾 Saved: _output/glr_loglik_bic.csv")
+
+except NameError:
+    print("⚠️ GLR model not found. Run your GLR training cell first.")
+except Exception as e:
+    print(f"⚠️ Could not compute GLR Log-Likelihood/BIC: {e}")
+
+
+```
+
+
+## Evaluation Metrics
+
+
