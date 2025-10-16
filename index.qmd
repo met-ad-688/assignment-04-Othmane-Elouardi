@@ -1,8 +1,84 @@
 ---
-title: "Assignment 04 — Overview"
-format: html
+title: "Assignment 04"
+subtitle: "Overview"
+author:
+  - name: "Othmane Elouardi"
+    affiliations:
+      - id: bu
+        name: "Boston University"
+        city: "Boston"
+        state: "MA"
+date: "2025-10-08"
+number-sections: true
+format:
+  html:
+    theme:
+      light: lux
+      dark: slate
+    toc: true
+    toc-depth: 3
+    toc-location: right
+    smooth-scroll: true
+    code-fold: true
+    code-tools: true
+    code-line-numbers: true
+    highlight-style: a11y
+    page-layout: article
+    css: styles.css
+    grid:
+      body-width: 900px
+      margin-width: 280px
+execute:
+  echo: true
+  warning: false
+  error: false
+  freeze: auto
+jupyter: env
 ---
 
-# Overview
 
-Links above (Lab 01 / Lab 02) open the labs.
+
+# Introduction
+This project delved into the Lightcast labor market dataset utilizing PySpark and Plotly, advancing from exploratory data analysis and visualization to sophisticated regression modeling and large-scale machine learning. Each lab emphasized the development of technical, analytical, and visual communication skills through structured objectives and the processing of real-world data workflows.
+
+# Lab 01 — Visual Reporting and Storytelling
+
+**Key Objectives:**  
+• Successfully loaded and analyzed the Lightcast dataset within a Spark DataFrame.  
+• Developed Plotly visualizations to examine:  
+  ◦ Salary distributions  
+  ◦ Employment trends  
+  ◦ Job postings  
+• Investigated the relationship between skills and NAICS/SOC/ONET codes concerning salaries.  
+• Enhanced the readability and presentation of visualizations by customizing colors, fonts, and styles.  
+• Implemented best practices for effective data communication.  
+• Compiled and presented results in both Jupyter Notebook and HTML formats.
+
+# Lab 02 — Insight from Data and Visualizations
+**Key Objectives:**  
+• Processed the Lightcast dataset using PySpark before converting it to Pandas for visualization purposes.  
+• Created advanced scatter plots and histograms to analyze:  
+  ◦ Education levels  
+  ◦ Categories of remote work  
+• Imputed missing salary data by using group medians for accuracy.  
+• Visualized salary distributions based on:  
+  ◦ Experience  
+  ◦ Education  
+  ◦ Remote setting  
+• Provided clear written insights for each chart to elucidate key trends.
+
+# Lab 03 — Regression Modeling on Employment Data
+**Key Objectives:**  
+• Conducted regression analysis on the Lightcast dataset utilizing PySpark.  
+• Engineered predictive features derived from structured columns relevant to salary data.  
+• Trained a Linear Regression model aimed at salary prediction.  
+• Evaluated the model's performance using RMSE and R² metrics.  
+• Created diagnostic plots to visualize predictions and assess model accuracy.
+
+# Lab 04 — Machine Learning on Scale
+**Key Objectives:**  
+• Employed PySpark for the large-scale processing of the Lightcast dataset.  
+• Engineered structured features suitable for salary prediction at scale.  
+• Trained and validated a Linear Regression model using distributed data effectively.  
+• Assessed model results using RMSE and R² metrics.  
+• Developed diagnostic visualizations to evaluate predictive performance and identify model patterns.e and detect model patterns.
